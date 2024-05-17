@@ -1,6 +1,7 @@
 import requests
 import openai
-from RLG.Request.Authorization import Headers
+from RLG.Request.Authorization import headers
+url="http://127.0.0.1:8000/v1/chat/completions"
 
 def get_request_kimi(id, content):
     '''
