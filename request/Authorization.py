@@ -1,0 +1,11 @@
+'''
+提供账号
+'''
+#kimi
+TOKEN_CZY="eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcyMzU0Mzg2NiwiaWF0IjoxNzE1NzY3ODY2LCJqdGkiOiJjcDI4a2VpdG5uMGdqOHQ1MmMxZyIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjcDI3ZzU0dWR1NjVqM2JkazlwZyIsInNwYWNlX2lkIjoiY3AyN2c1NHVkdTY1ajNiZGs5bGciLCJhYnN0cmFjdF91c2VyX2lkIjoiY3AyN2c1NHVkdTY1ajNiZGs5bDAifQ.ToLbJbZa7wYZaSgqLUUQOzMQUhcKKsH3yP5nlykCvCoYK0SH8C8VQWkTUS7D-4mhDps8kUPLEwUnfzLjNOcARg"
+TOKEN_UNK=('eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcyMzEzNDc5NiwiaWF0IjoxNzE1MzU4Nzk2LC'
+         'JqdGkiOiJjb3Y0b2oydms2Z2ZpNHJobjlnMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbWZvNHJlY3A3ZmZuYzR2dXQwMCIsInNwYWNlX2lk'
+         'IjoiY21mbzRyZWNwN2ZmbmM0dnVzdmciLCJhYnN0cmFjdF91c2VyX2lkIjoiY21mbzRyZWNwN2ZmbmM0dnV0MDAifQ.rZQvnlZtPzYMXwlL1-a'
+         'eTZ9oED81ciASCwksdN5ui80Ryb7zqvRn6ffos5Nx8QCce19OND02zXJz37-6AWNfag')
+headers={'Content-Type': 'application/json','Authorization': f"Bearer {TOKEN_CZY}"}
+#GPT
