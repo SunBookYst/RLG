@@ -18,8 +18,6 @@ with open('log.txt','w',encoding='utf-8') as file:
         player_content=input()
         if player_content=='q':
             break
-        if player_content=='2':
-            player_content=content
         else:
             player_content='【玩家】'+player_content
             file.write(player_content+'\n')

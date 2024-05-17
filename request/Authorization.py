@@ -7,5 +7,5 @@ TOKEN_UNK=('eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV
          'JqdGkiOiJjb3Y0b2oydms2Z2ZpNHJobjlnMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbWZvNHJlY3A3ZmZuYzR2dXQwMCIsInNwYWNlX2lk'
          'IjoiY21mbzRyZWNwN2ZmbmM0dnVzdmciLCJhYnN0cmFjdF91c2VyX2lkIjoiY21mbzRyZWNwN2ZmbmM0dnV0MDAifQ.rZQvnlZtPzYMXwlL1-a'
          'eTZ9oED81ciASCwksdN5ui80Ryb7zqvRn6ffos5Nx8QCce19OND02zXJz37-6AWNfag')
-Headers={'Content-Type': 'application/json','Authorization': f"Bearer {TOKEN_UNK},{TOKEN_CZY}"}
+Headers={'Content-Type': 'application/json','Authorization': f"Bearer {TOKEN_CZY}"}
 #GPT

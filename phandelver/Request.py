@@ -4,7 +4,7 @@
 '''
 
 import requests
-from Authorization import Headers
+from RLG.request.Authorization import Headers
 
 class KimiChat:
     def __init__(self, model_name='kimi', use_search=False, stream=False):
