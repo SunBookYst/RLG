@@ -7,7 +7,7 @@ from button import *
 
 
 def render_main_page(screen):
-    screen.fill((0, 0, 0))
+    screen.fill((50, 50, 50))
     draw_map(screen, base_bg_image, city_map)
     box_x, box_y, box_width, box_height = 1280, 0, 400, 800
     # console_output = io.StringIO()
@@ -21,16 +21,19 @@ def render_main_page(screen):
     console_output.truncate(0)
 
     # 渲染并绘制文本
-    text_surfaces = render_text(console_text, font, text_color, box_color)
+    text_surfaces = render_text(console_text)
     for i, surface in enumerate(text_surfaces):
         screen.blit(surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
-
+    # status_surface = pygame.Surface((400, 300))
+    # render_status(status_surface)
+    # screen.blit(status_surface, (1280, 400))
     pygame.display.flip()
 
 def render_second_page(screen):
     # 在第二个页面显示不同的内容
+    screen.fill(50,50,50)
     text = "这是第二个页面"
-    text_surfaces = render_text(text, font, text_color, bg_color)
+    text_surfaces = render_text(text)
     for i, surface in enumerate(text_surfaces):
         screen.blit(surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
 
@@ -45,11 +48,11 @@ width, height = 1280, 1024
 # screen = pygame.display.set_mode((width, height))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("City Map")
-font_path = "C:\Windows\Fonts\simhei.ttf"  # 请确保路径正确
-font = pygame.font.Font(font_path, 20)
+# font_path = "C:\Windows\Fonts\simhei.ttf"  # 请确保路径正确
+# font = pygame.font.Font(font_path, 20)
 
 running = True
-screen.fill((0, 0, 0))
+screen.fill((50, 50, 50))
 # draw_map(screen, base_bg_image, city_map)
 # box_x, box_y, box_width, box_height = 1024, 0, 600, 800
 # # console_output = io.StringIO()
@@ -69,7 +72,9 @@ screen.fill((0, 0, 0))
 #TODO 设定FPS，保存页面状态
 main_surface = pygame.Surface((1920, 1024))
 second_surface = pygame.Surface((1920, 1024))
+status_surface = pygame.Surface((400, 300))
 render_main_page(main_surface)
+render_status(status_surface)
 render_second_page(second_surface)
 pygame.display.flip()
 first_draw = True
@@ -88,6 +93,7 @@ while running:
     matter = False
     if current_page == SHOW_MAIN_PAGE:
         screen.blit(main_surface,(0,0))
+        screen.blit(status_surface, (1280, 400))
     else:
         screen.blit(second_surface,(0,0))
     draw_button(screen, "切换页面", button_x, button_y, button_width, button_height, button_color, button_hover_color,font,text_color)

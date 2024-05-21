@@ -120,7 +120,6 @@ def generate_random_map(residential_range, shop_range, k):
             vertical_roads = add_partial_road(horizontal=False, existing_roads=vertical_roads)
 
         if is_connected(game_map):
-            # print("道路违章！")
             break
     def check_zero(matrix):
         for row in matrix:
@@ -162,31 +161,13 @@ def generate_random_map(residential_range, shop_range, k):
         for k in range(round):
             for tmp_row in range(map_size_row-height+1):
                 for tmp_col in range(map_size_col-width+1):
-                    # if (game_map[tmp_row][tmp_col] == 0) and (game_map[row+1][col] == 0) and (game_map[row][col+1] == 0) and (game_map[row+1][col+1] == 0):
-                    # for i in range(width):
-                    #     col = tmp_col+i
-                    #     for j in range(height):
-                    #         row = tmp_row+j
-                    # row = tmp_row
-                    # col = tmp_col
-                    # print("0",tmp_game_map)
-                    # print("1",tmp_game_map[tmp_row:tmp_row+height,tmp_col:tmp_col+width])
                     if check_zero(tmp_game_map[tmp_row:tmp_row+height,tmp_col:tmp_col+width]) and search_round(tmp_game_map,tmp_row,tmp_col,width,height):
-                        # print("2",tmp_game_map[tmp_row:tmp_row+height,tmp_col:tmp_col+width])
-                        # if search_round(tmp_game_map,tmp_row,tmp_col,width,height):
-                            # print(tmp_row,tmp_col,"lalalal")
-                        # if (row > 0 and tmp_game_map[row - 1][col] in {1, 2, 3}) or \
-                        # (row < map_size - 1 and tmp_game_map[row + 1][col] in {1, 2, 3}) or \
-                        # (col > 0 and tmp_game_map[row][col - 1] in {1, 2, 3}) or \
-                        # (col < map_size - 1 and tmp_game_map[row][col + 1] in {1, 2, 3}) or \
-                        # (round>1 and (mark in tmp_game_map[max(0,row-height):min(len(tmp_game_map),row+height)][col])): # 垂直方向有建筑物
                         empty_cells.append((tmp_row, tmp_col))
                         for i in range(width):
                             col = tmp_col+i
                             for j in range(height):
                                 row = tmp_row+j
                                 tmp_game_map[row][col]=mark #某类型建筑物占用
-                        # print(tmp_row,tmp_col)
                         # for row in tmp_game_map:
                         #     formatted_row = [f"{x:>3}" for x in row]
                         #     print(' '.join(formatted_row))
@@ -228,18 +209,10 @@ def generate_random_map(residential_range, shop_range, k):
         game_map[row+height-1][col] = 6
     return game_map
 
-# 初始化 Pygame
-# pygame.init()
-# width, height = 1024, 1024
-# # screen = pygame.display.set_mode((width, height))
-# screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-# pygame.display.set_caption("City Map")
-
 # 随机生成地图
 residential_range = (30, 40)
 shop_range = (30, 40)
 k = 5 # 道路间最小距离
-#同方向位置重合的道路的最小距离
 #TODO 建筑物也可以生成在其他建筑物的纵向位置
 #TODO 建筑物尺寸改为2*2,横向间隔为1
 #TODO 道路生成逻辑修改为先生成一条路，由此拓展
@@ -259,7 +232,7 @@ k = 5 # 道路间最小距离
 city_map = generate_random_map(residential_range, shop_range, k)
 for row in city_map:
     formatted_row = [f"{x:>3}" for x in row]
-    # print(' '.join(formatted_row))
+    # print(' '.join(formatted_row)) #NOTE输出字符格式的地图
 
 # 将生成的地图绘制到屏幕上
 def draw_map(screen, base_bg_image, city_map):
@@ -296,43 +269,12 @@ def draw_map(screen, base_bg_image, city_map):
                 elif city_map[row][col] == 6:
                     tag = 6
                     tmp = random.choice([shop_0])
-                # city_map[row][col]=0
-                # city_map[row+1][col]=0
-                # city_map[row][col+1]=0
-                # city_map[row+1][col+1]=0
-                # print(tag,tmp.height,tmp.width)
                 x = col * 16
                 y = row* 16-tmp.height+48
-                if tag==5 or tag==6:
+                if tag==5 or tag==6: #位置修正
                     y = y-32
-                # print(x,y)
-                # x,y = col*16, row*16
+
                 screen.blit(base_bg_image, (x, y), tmp)
-    # tag = 0
-    # for row in range(len(city_map)): #建筑应当自上而下叠加
-    #     for col in range(len(city_map[0])):
-    #         if city_map[row][col] in {4, 5, 6}:
-    #             if city_map[row][col] == 4:
-    #                 tag = 4
-    #                 tmp = random.choice([house_0, house_1, house_2])
-    #             elif city_map[row][col] == 5:
-    #                 tag = 5
-    #                 tmp = random.choice([shop_1])
-    #             elif city_map[row][col] == 6:
-    #                 tag = 6
-    #                 tmp = random.choice([shop_0])
-    #             # city_map[row][col]=0
-    #             # city_map[row+1][col]=0
-    #             # city_map[row][col+1]=0
-    #             # city_map[row+1][col+1]=0
-    #             print(tag,tmp.height,tmp.width)
-    #             x = col * 16
-    #             y = row* 16-tmp.height+48
-    #             if tag==5:
-    #                 y = y-32
-    #             print(x,y)
-    #             # x,y = col*16, row*16
-    #             screen.blit(base_bg_image, (x, y), tmp)
 if __name__ =="__main__":
     pygame.init()
     width, height = 1024, 1024
@@ -340,7 +282,7 @@ if __name__ =="__main__":
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("City Map")
     running = True
-    screen.fill((0, 0, 0))
+    screen.fill((50, 50, 50))
     draw_map(screen, base_bg_image, city_map)
     box_x, box_y, box_width, box_height = 1024, 0, 600, 800
     # console_output = io.StringIO()
