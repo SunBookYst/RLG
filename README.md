@@ -3,6 +3,15 @@
 游戏未命名<br />
 GPT的接口没写(我用kimi做的SYS)<br />
 背景故事未完成<br />
+系统会偶尔代替玩家做出行动（或者说，话太多）<br />
+系统会在末尾给出建议和选项询问玩家选择<br />
+地图生成，任务生成，玩家属性，【制造系统】等子系统未接入<br />
+多玩家对话未测试<br />
 ## 文件说明
 Request:包含Authorization文件(储存key并构建header),Request文件(构建请求函数)<br />
-sys_groundstory:包含sys_prompt和sys,构建系统部分.
+sys_groundstory:包含sys_prompt和sys,构建系统部分.<br />
+## 更新log
+- 5/21 
+- 加入了尝试性的summerize函数（在sys文件中），让大模型进行概括存档，还没有测试是否能读取存档。
+- main文件，简单编写了问答以便进行测试。
+- 更新了一些系统设置。
