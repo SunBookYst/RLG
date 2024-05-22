@@ -43,15 +43,20 @@ def get_request_kimi(id, content):
         return -1
 
 
-def read_answer(answer):
+def read_answer(answer,show=True):
+    '''
+    :param answer:
+    :param show:True -当不希望打印内容时,设置为Fals
+    :return:
+    '''
     if answer == -1:
         print("Error: No answer")
         return 0,'Null'
 
     id = answer["id"]
     content = answer["choices"][0]["message"]["content"]
-    print(content)
-
+    if show:
+        print(content)
     return id, content
 
 def get_request_chatGPT(id,content):

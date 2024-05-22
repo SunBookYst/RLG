@@ -1,9 +1,19 @@
 import RLG.Request.Request as req
 
+def init_quest():
+    with open('./sys_groundstory/quest_sys_prompt.txt','r',encoding='utf-8') as f:
+        quest_prompt=f.read()
+    q_re=req.get_request_kimi(None,quest_prompt)
+    q_id,outline=req.read_answer(q_re,show=False)
+    with open('./outline.txt','w',encoding='utf-8') as f:
+        f.write(outline)
+
+    return q_id,outline
+
 def init(load_log:bool=False):
     '''
     :param load_log:默认False,读取log的时候请改为True(尚未实现load功能)
-    :return: id,content
+    :return: id,content,
     '''
     if load_log:
         print('此功能尚未实现')
