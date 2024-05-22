@@ -1,6 +1,6 @@
-import RLG.Request.Request as req
+import request.Request as req
 
-def init(load_log:bool=False):
+def init(load_log:bool = False):
     '''
     :param load_log:默认False,读取log的时候请改为True(尚未实现load功能)
     :return: id,content
