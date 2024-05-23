@@ -1,6 +1,7 @@
 import requests
 import openai
-from RLG.Request.Authorization import headers
+
+from request.Authorization import headers
 url="http://127.0.0.1:8000/v1/chat/completions"
 
 def get_request_kimi(id, content):
@@ -62,5 +63,6 @@ def get_request_chatGPT(id,content):
     :return: json格式的对话
     '''
     # TODO
-    return response.json()
+    pass
+    # return response.json()
 

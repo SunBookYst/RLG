@@ -1,10 +1,11 @@
-import pygame
 import random
+
+import pygame
+
 from map import *
 from utils import *
 from info import *
 from button import *
-
 
 def render_main_page(screen):
     screen.fill((50, 50, 50))
@@ -36,6 +37,7 @@ def render_second_page(screen):
     text_surfaces = render_text(text)
     for i, surface in enumerate(text_surfaces):
         screen.blit(surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
+
 
 
 
