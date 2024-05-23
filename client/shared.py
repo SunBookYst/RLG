@@ -1,11 +1,16 @@
-import pygame
 import sys
 import io
+import os
+import pygame
 
 pygame.init()
-size = width, height = 400,300
-screen = pygame.display.set_mode(size)
-base_bg_image = pygame.image.load('./asset/CP_V1.0.4.png')
+# size = width, height = 400,300
+# screen = pygame.display.set_mode(size)
+
+CLIENT_PATH = os.path.split(os.path.realpath(__file__))[0]
+base_bg_image = pygame.image.load(CLIENT_PATH+'/asset/CP_V1.0.4.png')
+
+
 # brick，road，house，car，others
 rect = base_bg_image.get_rect()
 width = rect.width
@@ -34,9 +39,12 @@ brick_5 = pygame.Rect(464,816,16,16)
 brick_6 = pygame.Rect(400,848,16,16)
 brick_7 = pygame.Rect(432,848,16,16)
 brick_8 = pygame.Rect(464,848,16,16)
-fclock = pygame.time.Clock()
 
-font_path = "C:\Windows\Fonts\simhei.ttf"
+
+map_size_col = 80
+map_size_row = 64
+
+font_path = "C:\Windows\Fonts\simhei.ttf" #FIXME
 font = pygame.font.Font(font_path, 20)
 button_font = pygame.font.Font(font_path, 25)
 text_color = (255, 255, 255)

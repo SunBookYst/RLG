@@ -1,21 +1,26 @@
-import requests
-import re
+# import requests
+# import re
 import pygame
 from map import *
-from utils import *
 
-FPS=50
-long_text = "这是一个示例文本。" * 200
-url = "xxx"#TODO 服务端
+FPS=60 #全局帧率
+long_text = "这是一个示例文本。" * 200 #用于填充 信息 板块
+url = "xxx"#TODO 服务端url地址
 
 
 def render_text(text):
+    '''
+    渲染一个固定的文本框，暂废弃
+    '''
     lines = text.splitlines()
     surfaces = [font.render(line, True, text_color, bg_color) for line in lines]
     return surfaces
 
 
 def render_text_slide(surface, text, pos, max_width,text_color):
+    '''
+    渲染一个可上下滑动的文本，返回值表示下一个line渲染时开始的位置
+    '''
     x, y = pos
     words = list(text)
     for word in words:
@@ -30,6 +35,9 @@ def render_text_slide(surface, text, pos, max_width,text_color):
 
 
 def render_status(surface):
+    '''
+    暂废弃
+    '''
     surface.fill(box_color)
     fixed_text = "生命值: "
     variable_text = str(LIFE)
@@ -52,30 +60,15 @@ def render_status(surface):
     text_surf = font.render(variable_text, True, variable_text_color)
     surface.blit(text_surf, (20 + text_surf.get_width() + 10, 65))
 
-def render_main_page(screen):
+def render_main_page(screen): #TODO 待替换为与系统文字交互的页面
     screen.fill((50, 50, 50))
     draw_map(screen, base_bg_image, city_map)
     box_x, box_y, box_width, box_height = 1280, 0, 400, 800
-    # console_output = io.StringIO()
-        # 绘制方框
     pygame.draw.rect(screen, box_color, (box_x, box_y, box_width, box_height))
 
-    # # 获取控制台输出的内容
-    # console_output.seek(0)
-    # console_text = console_output.read()
-    # console_output.seek(0)
-    # console_output.truncate(0)
-
-    # # 渲染并绘制文本
-    # text_surfaces = render_text(console_text)
-    # for i, surface in enumerate(text_surfaces):
-        # screen.blit(surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
-    # status_surface = pygame.Surface((400, 300))
-    # render_status(status_surface)
-    # screen.blit(status_surface, (1280, 400))
     pygame.display.flip()
 
-def render_second_page(screen):
+def render_second_page(screen): #TODO 待替换为过场动画页面
     # 在第二个页面显示不同的内容
     screen.fill((50,50,50))
     text = "这是第二个页面"
@@ -84,15 +77,18 @@ def render_second_page(screen):
         screen.blit(surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
 
 def main_menu(screen):
+    '''
+    开始页面
+    加入一个大于屏幕大小的背景图，实现一个碰撞和淡入淡出效果
+    '''
     menu = True
-    image = pygame.image.load('./image/map03.png').convert_alpha()
+    image = pygame.image.load(CLIENT_PATH+'./image/map03.png').convert_alpha()
     tmp_font = pygame.font.Font(font_path, 40)
     text = tmp_font.render('开始游戏', True, (255, 255, 255))
 
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     info = pygame.display.Info()
     screen_width, screen_height = info.current_w, info.current_h
-    # print("HAHAHHAHHAHA",screen_width,screen_height)
     image_width, image_height = image.get_width(), image.get_height()
 
     # 图像的初始位置和速度以及淡入信息
@@ -241,7 +237,7 @@ while running:
         screen.blit(button_text_surface, button_text_rect)
 
     text_surface = pygame.Surface((textbox_rect.width, textbox_rect.height))
-    text_surface.fill((50, 50, 50)) # 文本框色彩
+    text_surface.fill((50, 50, 50))
     pos = (0,0)
     lines = [long_text[i:i+w_num] for i in range(0, len(long_text), w_num)]
     for i, line in enumerate(lines[start_line:]):

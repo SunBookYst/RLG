@@ -1,22 +1,24 @@
-import pygame
 import random
+import pygame
 import numpy as np
 from collections import deque
-from utils import *
-from info import *
-import copy
 
-map_size_col = 80
-map_size_row = 64
-road_width = 3
-building_size = 2
-use_mark = [1,2,3]
+from shared import *
+
+residential_range = (30, 40) #居民楼生成数量范围
+shop_range = (30, 40) #商店生成数量范围
+num_horizontal_roads = random.randint(4, 6) #道路生成数量
+num_vertical_roads = random.randint(4, 6)
+k = 5 # 道路间最小距离
+use_mark = [1,2,3] #标记道路
 
 def generate_random_map(residential_range, shop_range, k):
-    # map_size = 64
     game_map = np.array([[0 for _ in range(map_size_col)] for _ in range(map_size_row)])
 
     def is_connected(game_map):
+        '''
+        判断最后生成的道路是否全联通，否则重新生成道路
+        '''
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         visited = np.array([[False] * map_size_col for _ in range(map_size_row)])
 
@@ -49,24 +51,32 @@ def generate_random_map(residential_range, shop_range, k):
         return True
 
     def is_valid_road(start, end, existing_roads, k, start_pos,type):
+        '''
+        start end 道路起止的纵/横坐标，
+        existing_road，现存所有道路
+        k 最小道路间距
+        start_pos 横向道路所在行，或纵向道路所在列
+        type 横向/纵向道路
+        验证逻辑：和已有道路冲突则废弃；冲突标准：与已有道路区间重合的情况下，间距未达到k。若区间未重合，例如横向道路区间分别为（1，10）和（20，30），则不会冲突
+        '''
         for s, e,st,t in existing_roads:
             if t!=type:
                 continue
             if start_pos==st:
                 if not (end < s or start > e):  # If ranges overlap
-                    # if abs(start - s) < k or abs(end - e) < k:
                     return False
             elif abs(start_pos-st)<k:
                 return False
         return True
 
     def add_partial_road(horizontal=True, existing_roads=None):
+        '''
+        增加纵向/横向道路，通过is_valid_road验证是否合法
+        '''
         if existing_roads is None:
             existing_roads = []
 
         while True:
-            # start = random.randint(0, map_size - 1)
-            # length = random.randint(map_size // 3, map_size)
             if horizontal:
                 start = random.randint(0, map_size_row - 1)
                 length = random.randint(map_size_col // 3, map_size_col)
@@ -79,7 +89,7 @@ def generate_random_map(residential_range, shop_range, k):
                             game_map[row][col] = 3
                         else:
                             game_map[row][col] = 1
-                            if row!=0:
+                            if row!=0: #在此实现宽为3的路
                                 game_map[row-1][col] = 3
                             if row!=game_map.shape[0]-1:
                                 game_map[row+1][col] = 3
@@ -97,7 +107,7 @@ def generate_random_map(residential_range, shop_range, k):
                             game_map[row][col] = 3
                         else:
                             game_map[row][col] = 2
-                            if col!=0:
+                            if col!=0: #在此实现宽为3的路
                                 game_map[row][col-1] = 3
                             if col!=game_map.shape[1]-1:
                                 game_map[row][col+1] = 3
@@ -107,12 +117,9 @@ def generate_random_map(residential_range, shop_range, k):
     print("正在为城市铺设道路...")
     while True:
         game_map = np.array([[0 for _ in range(map_size_col)] for _ in range(map_size_row)])
-        # print("game shape",game_map.shape)
         horizontal_roads = []
         vertical_roads = []
 
-        num_horizontal_roads = random.randint(4, 6)
-        num_vertical_roads = random.randint(4, 6)
         for _ in range(num_horizontal_roads):
             horizontal_roads = add_partial_road(horizontal=True, existing_roads=horizontal_roads)
 
@@ -156,6 +163,13 @@ def generate_random_map(residential_range, shop_range, k):
 
 
     def find_adjacent_empty_cells(width,height,mark,round=1):
+        '''
+        width、height 建筑宽高
+        mark 建筑类型
+        round 废弃参数
+
+        寻找路旁可建筑区域
+        '''
         tmp_game_map = np.array(game_map)
         empty_cells = []
         for k in range(round):
@@ -168,14 +182,11 @@ def generate_random_map(residential_range, shop_range, k):
                             for j in range(height):
                                 row = tmp_row+j
                                 tmp_game_map[row][col]=mark #某类型建筑物占用
-                        # for row in tmp_game_map:
-                        #     formatted_row = [f"{x:>3}" for x in row]
-                        #     print(' '.join(formatted_row))
-                            # print('  '.join(map(str, row)))
         return empty_cells
 
     residential_count = random.randint(*residential_range)
     print("正在生成建筑...")
+    # 居民楼的宽高信息
     width=3
     height=3
     empty_cells = find_adjacent_empty_cells(width,height,4)
@@ -189,6 +200,7 @@ def generate_random_map(residential_range, shop_range, k):
     shop_count = random.randint(*shop_range)
     shop_0_count = random.randint(0,shop_count)
     shop_1_count = shop_count-shop_0_count
+    #一种商店的宽高信息
     width=3
     height=3
     empty_cells = find_adjacent_empty_cells(width,height,5)
@@ -198,6 +210,7 @@ def generate_random_map(residential_range, shop_range, k):
         row,col = random.choice(empty_cells)
         game_map[row:row+height,col:col+width] = 50
         game_map[row+height-1][col] = 5
+        #一种商店的宽高信息
     width=4
     height=3
     empty_cells = find_adjacent_empty_cells(width,height,6)
@@ -209,15 +222,11 @@ def generate_random_map(residential_range, shop_range, k):
         game_map[row+height-1][col] = 6
     return game_map
 
-# 随机生成地图
-residential_range = (30, 40)
-shop_range = (30, 40)
-k = 5 # 道路间最小距离
-#TODO 建筑物也可以生成在其他建筑物的纵向位置
-#TODO 建筑物尺寸改为2*2,横向间隔为1
-#TODO 道路生成逻辑修改为先生成一条路，由此拓展
-#TODO 断头路尽头一定要有建筑物
-#TODO UI界面可滑动
+city_map = generate_random_map(residential_range, shop_range, k)
+
+# for row in city_map:
+#     formatted_row = [f"{x:>3}" for x in row]
+    # print(' '.join(formatted_row)) #NOTE 输出字符格式的地图，如有需要可以解除此处注释
 
 #TODO 建筑点击有反应
 #TODO 地面铺设更加平滑
@@ -228,16 +237,12 @@ k = 5 # 道路间最小距离
 #TODO 空地增加树木，垃圾桶，
 #TODO 路障生成
 
-city_map = generate_random_map(residential_range, shop_range, k)
-for row in city_map:
-    formatted_row = [f"{x:>3}" for x in row]
-    # print(' '.join(formatted_row)) #NOTE输出字符格式的地图
-
-# 将生成的地图绘制到屏幕上
 def draw_map(screen, base_bg_image, city_map):
+    '''
+    绘制地图到屏幕，由地基到建筑，由上到下，依次绘制
+    '''
     for row in range(len(city_map)):
         for col in range(len(city_map[0])):
-            # if city_map[row][col] == 0:
             tmp = random.choice([brick_0, brick_1, brick_2, brick_3, brick_4, brick_5, brick_6, brick_7, brick_8])
             tmp = brick_4
             x, y = col * 16, row * 16
@@ -256,7 +261,7 @@ def draw_map(screen, base_bg_image, city_map):
                 screen.blit(base_bg_image, (x, y), tmp)
 
     tag = 0
-    for row in range(len(city_map)): #建筑应当自上而下叠加
+    for row in range(len(city_map)):
         for col in range(len(city_map[0])):
             if city_map[row][col] in {4, 5, 6}:
                 if city_map[row][col] == 4:
@@ -272,24 +277,4 @@ def draw_map(screen, base_bg_image, city_map):
                 y = row* 16-tmp.height+48
                 if tag==5 or tag==6: #位置修正
                     y = y-32
-
                 screen.blit(base_bg_image, (x, y), tmp)
-if __name__ =="__main__":
-    pygame.init()
-    width, height = 1024, 1024
-    # screen = pygame.display.set_mode((width, height))
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-    pygame.display.set_caption("City Map")
-    running = True
-    screen.fill((50, 50, 50))
-    draw_map(screen, base_bg_image, city_map)
-    box_x, box_y, box_width, box_height = 1024, 0, 600, 800
-    # console_output = io.StringIO()
-    pygame.draw.rect(screen, box_color, (box_x, box_y, box_width, box_height))
-    pygame.display.flip()
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-    pygame.quit()
