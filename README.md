@@ -3,14 +3,22 @@
 ## 问题
 
 - 游戏命名仍需界定。
+
     初版可以命名为 Heroes vs Villians。
+
 - GPT 的接口仍未成熟，在当前的程序下无法调用。
-    对于 `start.bat` 和 `stop.bat` 的使用过于生硬，请增加 `Quick start` 引导。
+
+    Fixed.
+
 - 背景故事未完成，GPT 无法根据背景故事生成内容。
+
     对应的背景放到文件夹下。
+
 - 系统会偶尔代替玩家做出行动（或者说，话太多）
 - 系统会在末尾给出建议和选项询问玩家选择。
+
     上述内容通过完善 `prompt` 完成。
+
 - 地图生成，任务生成，玩家属性，【制造系统】等子系统未接入。
     1. 地图生成是随机的，背景故事应当给出一些必要的建筑(市政厅、警察局、居民区、工厂等)，在地图生成时需要加入。
     2. 玩家属性仍未完成，需要设计一个类以供接入。
@@ -19,21 +27,10 @@
 ## 程序框架
 ```Apache
 ├─asset
-│  ├─AI Games
-│  │  └─Textures Materials2D Isometric Tiles
-│  ├─Amanz
-│  │  └─Textures MaterialsIcons UI
-│  ├─Eder
-│  │  └─Textures Materials2D Isometric Tiles
-│  ├─Gutty Kreum
-│  │  └─Textures Materials2D Isometric Tiles
-│  └─NYKNCK
-│      └─Textures Materials
 ├─phandelver
 ├─request
 ├─src
 ├─sys_groundstory
-│  └─__pycache__
 ├─ui
 │  ├─asset
 │  ├─image
@@ -61,6 +58,9 @@
 
 ## 运行
 **TODO**： 请在这里补全 KIMI API 使用的最小依赖。
+
+reference: https://github.com/LLM-Red-Team/kimi-free-api/tree/master
+
 运行 `main.py` 即可。
 
 启动
@@ -73,7 +73,6 @@ pause
 ```bash
 pm2 stop kimi-free-api
 ```
-
 
 ## 附
 

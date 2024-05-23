@@ -114,8 +114,7 @@ class LLMAPI(object):
             else:
                 response = response["choices"][0]["message"]["content"]
                 return response
-                
-                
+
 
 def main():
     
