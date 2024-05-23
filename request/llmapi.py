@@ -3,8 +3,8 @@ import requests
 
 import openai
 
-from constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
-from constant import MAX_WINDOW
+from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
+from request.constant import MAX_WINDOW
 
 class LLMAPI(object):
     """
@@ -51,8 +51,6 @@ class LLMAPI(object):
         prompt = self.initial_prompt + prompt
         
         self.chat_history.append({'role':'user', 'content': prompt})
-        
-        print(self.chat_history)
         
         if self.model_name == "gpt-3.5-turbo":
 
