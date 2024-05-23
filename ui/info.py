@@ -9,8 +9,8 @@ box_color = (50, 50, 50)
 fixed_text_color = (0, 255, 0)
 variable_text_color = (192, 192, 192)
 box_x, box_y, box_width, box_height = 1280, 0, 400, 800
-console_output = io.StringIO()
-sys.stdout = console_output
+# console_output = io.StringIO()
+# sys.stdout = console_output
 
 life = 100
 assets = 5000

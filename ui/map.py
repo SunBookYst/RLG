@@ -232,7 +232,7 @@ k = 5 # 道路间最小距离
 city_map = generate_random_map(residential_range, shop_range, k)
 for row in city_map:
     formatted_row = [f"{x:>3}" for x in row]
-    # print(' '.join(formatted_row)) #NOTE输出字符格式的地图
+    print(' '.join(formatted_row)) #NOTE输出字符格式的地图
 
 # 将生成的地图绘制到屏幕上
 def draw_map(screen, base_bg_image, city_map):

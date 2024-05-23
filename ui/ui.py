@@ -31,7 +31,7 @@ def render_main_page(screen):
 
 def render_second_page(screen):
     # 在第二个页面显示不同的内容
-    screen.fill(50,50,50)
+    screen.fill((50,50,50))
     text = "这是第二个页面"
     text_surfaces = render_text(text)
     for i, surface in enumerate(text_surfaces):
