@@ -1,4 +1,3 @@
-
 import requests
 
 import openai
@@ -118,6 +117,14 @@ class LLMAPI(object):
             else:
                 response = response["choices"][0]["message"]["content"]
                 return response
+
+
+def initialize_llm(prompt, type="KIMI-server"):
+    print("Initializing...")
+    model = LLMAPI(type)
+    intro = model.generateResponse(prompt)
+    print(intro)
+    return model
 
 
 def main():
