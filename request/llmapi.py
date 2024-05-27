@@ -3,8 +3,8 @@ import requests
 
 import openai
 
-from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
-from request.constant import MAX_WINDOW
+from RLG.Request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
+from RLG.Request.constant import MAX_WINDOW
 
 class LLMAPI(object):
     """
@@ -99,7 +99,7 @@ class LLMAPI(object):
                 
             response = requests.post(url = SERVER_URL, headers = TOKEN_HEADERS, json = data)
             
-            if response.status_code != 200 or response['code'] == -2000:
+            if response.status_code != 200:
                 raise Exception("Server error")
             
             response = response.json()
