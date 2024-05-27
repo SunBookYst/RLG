@@ -3,6 +3,8 @@ import requests
 
 import openai
 
+from tenacity import retry, stop_after_attempt
+
 from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
 from request.constant import MAX_WINDOW
 
@@ -33,6 +35,7 @@ class LLMAPI(object):
             self.chat_history = [{'role': 'system', 'content': initial_prompt}]
         self.kimi_id = 'null'
 
+    @retry(stop = stop_after_attempt(3))
     def generateResponse(self, prompt:str, return_json:bool = False):
         """
         Generate a result from a given prompt.
@@ -96,10 +99,13 @@ class LLMAPI(object):
                 "use_search": True,
                 "stream": False
             }
-                
-            response = requests.post(url = SERVER_URL, headers = TOKEN_HEADERS, json = data)
             
-            if response.status_code != 200 or response['code'] == -2000:
+            try:
+                response = requests.post(url = SERVER_URL, headers = TOKEN_HEADERS, json = data)
+            except Exception as e:
+                raise Exception("Server error")
+            
+            if response.status_code != 200:
                 raise Exception("Server error")
             
             response = response.json()
@@ -144,6 +150,7 @@ def main():
     except Exception as e:
         print('kimi: 连接失败')
         print(e)
+        
     
 if __name__ == "__main__":
     main()
