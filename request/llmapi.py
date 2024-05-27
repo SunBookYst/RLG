@@ -120,6 +120,17 @@ class LLMAPI(object):
 
 
 def initialize_llm(prompt, type="KIMI-server"):
+    """
+        Generate a LLM instance.
+
+        Args:
+            prompt (str): the input prompt
+            type (str, optional): the type of LLM
+
+        Returns:
+            A LLM instance(class LLMAPI)
+    """
+    
     print("Initializing...")
     model = LLMAPI(type)
     intro = model.generateResponse(prompt)
