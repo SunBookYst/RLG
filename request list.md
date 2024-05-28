@@ -1,7 +1,6 @@
 Request List
 
 - 主界面交互，发送:{'text':str,'role':str}; 路由：/main ; 期望接收：{'text':str,'role':str},'role'默认为系统
-
 - 子任务交互信息，发送：{'text': str, 'role': str}，即我（某个角色）说的某句话，某个反应；路由：/feedback；期望接收：{'text':str,'role':str} ，即与我交互的角色的反馈
 - 任务清单，发送：{'role': str }， 发送某个角色，给除这个角色可接受的任务清单；路由：/task_info；期望接收：{'task_list':[str,str,...]}，任务清单
 - 人物信息，发送：{'role':str}; 路由：/status；期望接收: {'attribute':dict} #dict的key后端决定,可以包括物质，能量，经验，等级以及其他属性信息

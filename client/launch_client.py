@@ -1,12 +1,12 @@
 import requests
 import random
 import pygame
+from copy import deepcopy
 # import pygame_textinput
 # from hanzi import TextBox
 from shared import *
 
 #TODO 显示框实现多种颜色的字体
-#TODO 根据游戏背景描述，获取整体地图
 #TODO 输入角色描述，获取角色像素大头贴
 #TODO 根据场景描述，获取场景图象
 def render_text(text):
@@ -72,8 +72,10 @@ def render_status(surface): #NOTE 暂时废弃
 
 #     pygame.display.flip()
 
-def render_dialogue(screen,lines):
+def render_image(screen):
     global input_text, system_text,main_alpha,vice_alpha,volume
+    global main_image, task_image, me_image, system_image
+    global changed
     # gray_color = (128, 128, 128, 128)
     screen.fill((0,0,0))
     s_w = screen.get_width()
@@ -84,27 +86,45 @@ def render_dialogue(screen,lines):
         volume += 1.0 / (pygame.mixer.get_init()[2] * fade_in_time / 1000)
         pygame.mixer.music.set_volume(volume)
 
-    #图像淡入
+
     if current_page == SHOW_MAIN_PAGE:
-        image = pygame.image.load(CLIENT_PATH+'./image/bg.png').convert_alpha()
-        image.set_alpha(main_alpha)
+        main_image.set_alpha(main_alpha)
         if main_alpha<255:
             main_alpha+=20
+        image = main_image
     else:
-        image = pygame.image.load(CLIENT_PATH+'./image/task1.png').convert_alpha()
-        image.set_alpha(vice_alpha)
+        task_image.set_alpha(vice_alpha)
         if vice_alpha<255:
             vice_alpha+=20
+        image = task_image
     i_w , i_h = image.get_size()
     screen.blit(image,(s_w // 2 - i_w // 2, s_h // 2 - i_h // 2))
+
     gray_surface = pygame.Surface((1270, 300))
     gray_surface.fill((128, 128, 128))  # 设置填充颜色为灰色
     gray_surface.set_alpha(100)
     screen.blit(gray_surface,(10, 580))
+    pygame.display.flip()
+
+    if max(main_alpha,vice_alpha)>=255 and volume>=1.0:
+        changed = False
+
+
+def render_dialogue(screen,lines):
+    global input_text, system_text,main_alpha,vice_alpha,volume
+    global main_image, task_image, me_image, system_image
 
     if current_role == 0:
+        role_image = system_image
+    else:
+        role_image = me_image
+
+    role_image.set_alpha(max(main_alpha,vice_alpha))
+    if current_role == 0:
+        screen.blit(role_image,(1000, 300))
         long_text = system_text
     else:
+        screen.blit(role_image,(0, 300))
         long_text = input_text
 
     textbox_rect = pygame.Rect(10, 600, 1250, 280)
@@ -122,21 +142,14 @@ def render_dialogue(screen,lines):
     pygame.display.flip()
 
 
-# def render_second_page(screen): #NOTE 暂时废弃
-#     # 在第二个页面显示不同的内容
-#     screen.fill((50,50,50))
-#     text = "这是第二个页面"
-#     text_surfaces = render_text(text)
-#     for i, t_surface in enumerate(text_surfaces):
-#         screen.blit(t_surface, (box_x + 5, box_y + 5 + i * (font.get_linesize() + 2)))
-
 def main_menu(screen):
     '''
     开始页面
     加入一个大于屏幕大小的背景图，实现一个碰撞和淡入淡出效果
     '''
+    global map_image
     menu = True
-    image = pygame.image.load(CLIENT_PATH+'./image/map03.png').convert_alpha()
+    image = map_image
     tmp_font = pygame.font.Font(font_path, 60)
     text = tmp_font.render('开始游戏', True, (245, 245, 245))
 
@@ -150,7 +163,7 @@ def main_menu(screen):
     speed_x, speed_y = 1, 1
     alpha = 0
     fade_out=False
-    fade_speed=2
+    fade_speed=3
 
 
     clock = pygame.time.Clock()
@@ -389,19 +402,24 @@ def button_5_function():
 
 def button_6_function(): #测试切换页面功能用
     global current_page,main_alpha,vice_alpha, system_text,volume
+    global changed
     if current_page == SHOW_MAIN_PAGE:
         current_page =SHOW_VICE_PAGE
         vice_alpha = 20
+        main_alpha = 20
         system_text = "现在在执行任务"*20
         random_item = random.choice([music_file_2,music_file_3])
         volume = 0.0
+        changed = True
         pygame.mixer.music.load(random_item)
         pygame.mixer.music.play(-1)
     else:
         current_page = SHOW_MAIN_PAGE
         main_alpha = 20
+        vice_alpha = 20
         system_text = "现在回到主界面了"*20
         volume = 0.0
+        changed = True
         pygame.mixer.music.load(music_file_1)
         pygame.mixer.music.play(-1)
 
@@ -418,10 +436,16 @@ buttons = [pygame.Rect(B_x[i], B_y[i], B_w[i], B_h[i]) for i in range(BUTTON_NUM
 
 pygame.init()
 pygame.mixer.init()
+#随着游戏进行图片需要重新加载替换
+
 os.environ["SDL_IME_SHOW_UI"] = "1"
 main_screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 pygame.display.set_caption("City Map")
-
+map_image = pygame.image.load(CLIENT_PATH+'./image/map03.png').convert_alpha()
+main_image = pygame.image.load(CLIENT_PATH+'./image/bg.png').convert_alpha()
+task_image = pygame.image.load(CLIENT_PATH+'./image/task1.png').convert_alpha()
+me_image = pygame.image.load(CLIENT_PATH+'./image/me.png').convert_alpha()
+system_image = pygame.image.load(CLIENT_PATH+'./image/system.png').convert_alpha()
 pygame.mixer.music.load(music_file_1)
 pygame.mixer.music.play(-1)
 
@@ -430,12 +454,13 @@ main_menu(main_screen)
 set_menu_1(main_screen)
 #人物设定确定
 set_menu_2(main_screen)
-#TODO 添加一个设置个人信息的页面
 
+changed = True
 running = True
 main_screen.fill((50, 50, 50))
 
-main_surface = pygame.Surface((1280, 900)) #TODO 替换为交互信息
+main_surface = pygame.Surface((1280, 900), pygame.SRCALPHA)
+image_surface = pygame.Surface((1280, 900))
 
 clock = pygame.time.Clock()
 while running:
@@ -449,7 +474,6 @@ while running:
                 for i, button in enumerate(buttons):
                     if button.collidepoint(event.pos):
                         button_functions[i]()
-            #TODO 滚轮滑动加入区域判定
             elif event.button == 4:  # 滚轮向上
                 if is_mouse_in_rect(mouse_pos, 0, 0, 1280, 900):
                     start_line = max(0, start_line - 1)
@@ -466,8 +490,8 @@ while running:
                 if current_role==0:
                     current_role = 1
                 else:
-                    dialogue_history.append(role+":"+input_text)
                     if current_page==SHOW_MAIN_PAGE:
+                        dialogue_history.append(role+":"+input_text)
                         # r = requests.get(url+"/main",json={'text':input_text,"role":role})
                         # system_text = r['text']
                         r= {}
@@ -476,30 +500,33 @@ while running:
                         system_text = r['text']
                         dialogue_history.append(r['role']+':'+r['text'])
                         #NOTE 从主系统过渡到任务执行状态
-                        if r['text']=="任务执行开始":#TODO 设置触发转换到任务状态的关键词,或者改为其他触发方式，由服务端确认
+                        if r['text']=="任务执行开始":#TODO 设置触发转换到任务状态的关键词,或者改为其他触发方式，由服务端确认后修改
                             current_page = SHOW_VICE_PAGE
-                            vice_plpha = 20
+                            vice_alpha = 20
+                            main_alpha = 20
                             random_item = random.choice([music_file_2,music_file_3])
                             volume = 0.0
+                            changed = True
                             pygame.mixer.music.load(random_item)
                             pygame.mixer.music.play(-1)
-                            #TODO 为任务生成场景图，存放到用户的./image/文件夹下，同时在render_dialogue处指定被调用的图片
+                            #TODO 同时为任务生成场景图，存放到用户的./image/文件夹下，同时在render_dialogue处指定被调用的图片
                     if current_page == SHOW_VICE_PAGE:
+                        vice_history.append(role+":"+input_text)
                         # r = requests.get(url+"/feedback",json={'text':input_text,"role":role})
                         # system_text = r['text']
-                        # vice_history.append(r['role']+':'+r['text'])
                         r= {}
                         r['role'] = "system"
                         r['text'] = "我不听我不听我不听"*10
                         system_text = r['text']
-                        dialogue_history.append(r['role']+':'+r['text'])
                         system_text = "开始执行任务"*10
                         vice_history.append(r['role']+':'+r['text'])
                         if r['text']=="任务执行结束":#TODO 触发信息设置同上
                             current_page = SHOW_MAIN_PAGE
                             main_alpha = 20
+                            vice_alpha = 20
                             vice_history = [] #NOTE 任务内对话信息任务结束后不保存
                             volume = 0.0
+                            changed = True
                             pygame.mixer.music.load(music_file_1)
                             pygame.mixer.music.play(-1)
                     input_text = ''
@@ -508,13 +535,15 @@ while running:
                 input_text = input_text[:-1]
             else:
                 input_text += event.unicode
-    # textinput.update(events)
-    # if current_page == SHOW_MAIN_PAGE:
+
+    if changed:
+        render_image(image_surface)
+
+    main_surface.fill((0,0,0,0))# 刷新main_surface
     render_dialogue(main_surface,lines)
+    main_screen.blit(image_surface,(0,0))
     main_screen.blit(main_surface,(0,0))
-    # elif current_page == SHOW_VICE_PAGE:
-    #     render_dialogue(main_surface,vice_lines)
-    #     main_screen.blit(main_surface,(0,0))
+
 
     for i in range(BUTTON_NUM): #渲染右侧按钮
         mouse_x, mouse_y = pygame.mouse.get_pos()
