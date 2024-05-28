@@ -39,7 +39,7 @@ def get_request_kimi(id, content):
 
     # 检查响应状态码
     if response.status_code == 200:
-        return response.json()
+        return read_answer(response.json())
     else:
         return -1
 
@@ -47,7 +47,7 @@ def get_request_kimi(id, content):
 def read_answer(answer,show=True):
     '''
     :param answer:
-    :param show:True -当不希望打印内容时,设置为Fals
+    :param show:True -当不希望打印内容时,设置为False
     :return:
     '''
     if answer == -1:
@@ -59,15 +59,3 @@ def read_answer(answer,show=True):
     if show:
         print(content)
     return id, content
-
-def get_request_chatGPT(id,content):
-    '''
-
-    :param id:对话id
-    :param content:对话内容
-    :return: json格式的对话
-    '''
-    # TODO
-    pass
-    # return response.json()
-
