@@ -39,23 +39,30 @@ def get_request_kimi(id, content):
 
     # 检查响应状态码
     if response.status_code == 200:
-        return read_answer(response.json())
+        return response.json()
     else:
         return -1
 
 
-def read_answer(answer,show=True):
-    '''
-    :param answer:
-    :param show:True -当不希望打印内容时,设置为False
-    :return:
-    '''
+def read_answer(answer):
     if answer == -1:
         print("Error: No answer")
         return 0,'Null'
 
     id = answer["id"]
     content = answer["choices"][0]["message"]["content"]
-    if show:
-        print(content)
+    print(content)
+
     return id, content
+
+def get_request_chatGPT(id,content):
+    '''
+
+    :param id:对话id
+    :param content:对话内容
+    :return: json格式的对话
+    '''
+    # TODO
+    pass
+    # return response.json()
+

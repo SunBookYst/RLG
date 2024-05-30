@@ -1,10 +1,13 @@
-
 import requests
+import time
 
 import openai
+import json
+from tenacity import retry, stop_after_attempt
 
-from RLG.Request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
-from RLG.Request.constant import MAX_WINDOW
+from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
+from request.constant import MAX_WINDOW
+
 
 class LLMAPI(object):
     """
@@ -23,7 +26,7 @@ class LLMAPI(object):
         - generateResponse(prompt, return_json = False): Generate a response from the LLM model.
     """
     
-    def __init__(self, model_name, initial_prompt = ""):
+    def __init__(self, model_name, initial_prompt=""):
         self.model_name = model_name
         self.initial_prompt = initial_prompt
         
@@ -33,10 +36,10 @@ class LLMAPI(object):
             self.chat_history = [{'role': 'system', 'content': initial_prompt}]
         self.kimi_id = 'null'
 
-    def generateResponse(self, prompt:str, return_json:bool = False):
+    @retry(stop=stop_after_attempt(3))
+    def generateResponse(self, prompt: str, return_json: bool = False, stream: bool = False):
         """
         Generate a result from a given prompt.
-
 
         Args:
             prompt (str): the input prompt
@@ -55,8 +58,8 @@ class LLMAPI(object):
         if self.model_name == "gpt-3.5-turbo":
 
             response = GPT_CLIENT.chat.completions.create(
-                model = "gpt-3.5-turbo",
-                messages = self.chat_history[-MAX_WINDOW:],
+                model="gpt-3.5-turbo",
+                messages=self.chat_history[-MAX_WINDOW:],
             )
             
             self.chat_history.append({'role':'assistant','content': response.choices[0].message.content})
@@ -66,22 +69,22 @@ class LLMAPI(object):
             else:
                 response = response.choices[0].message.content
                 return response
-        
+
         if self.model_name == "kimi":
             
             response = KIMI_CLIENT.chat.completions.create(
-                model = "moonshot-v1-8k",
+                model="moonshot-v1-8k",
                 messages=self.chat_history[-MAX_WINDOW:]
             )
             
-            self.chat_history.append({'role':'assistant','content': response.choices[0].message.content})
+            self.chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
             
             if return_json:
                 return response
             else:
                 response = response.choices[0].message.content
                 return response
-                
+
         if self.model_name == "KIMI-server":
             
             data = {
@@ -94,34 +97,78 @@ class LLMAPI(object):
                     }
                 ],
                 "use_search": True,
-                "stream": False
+                "stream": stream
             }
-                
-            response = requests.post(url = SERVER_URL, headers = TOKEN_HEADERS, json = data)
-            
+
+            response = requests.post(url=SERVER_URL, headers=TOKEN_HEADERS, json=data, stream=stream)
             if response.status_code != 200:
                 raise Exception("Server error")
-            
-            response = response.json()
-            
-            if self.kimi_id == 'null':
-                self.kimi_id = response['id']
-            
-            if return_json:
-                return response
+
+            if stream:
+                result, kimi_id = self._handle_sse_stream(response)
+                if self.kimi_id == 'null':
+                    self.kimi_id = kimi_id
+                return result
             else:
-                response = response["choices"][0]["message"]["content"]
-                return response
+                response = response.json()
+                if self.kimi_id == 'null':
+                    self.kimi_id = response['id']
+                if return_json:
+                    return response
+                else:
+                    response = response["choices"][0]["message"]["content"]
+                    return response
+
+    def _handle_sse_stream(self, response, delay=0.05):
+        """
+        Handle the SSE stream and print data in real-time.
+
+        Args:
+            response (requests.Response): The response object with stream enabled.
+            delay (num): The speed of printing letters
+        Returns:
+            str: The concatenated result from the SSE stream.
+            str: The kimi_id
+        """
+        result = ""
+        kimi_id = None
+        for line in response.iter_lines():
+            if line:
+                decoded_line = line.decode('utf-8')
+                if decoded_line.startswith("data: "):
+                    data_str = decoded_line[len("data: "):]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        data_json = json.loads(data_str)
+                        content = data_json.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                        for char in content:
+                            print(char, end='', flush=True)  # 实时逐字打印
+                            time.sleep(delay)  # 控制打印速度
+                        result += content
+                        if 'id' in data_json:
+                            kimi_id = data_json['id']
+                    except json.JSONDecodeError:
+                        print("Failed to decode JSON:", data_str)
+        return result, kimi_id
+
+
+def initialize_llm(prompt, type="KIMI-server"):
+    print("Initializing...")
+    model = LLMAPI(type)
+    intro = model.generateResponse(prompt, stream=True)
+    print('\n')
+    return model
 
 
 def main():
-    
+
     Q = "你是谁？"
     
     try:
         llm_server = LLMAPI("KIMI-server")
         response = llm_server.generateResponse(Q)
-        print('kimi-server:',response)
+        print('kimi-server:', response)
     
     except Exception as e:
         print('kimi-server: 连接失败')
@@ -130,7 +177,7 @@ def main():
     try:
         llm_gpt = LLMAPI("gpt-3.5-turbo")
         response = llm_gpt.generateResponse(Q)
-        print('gpt-3.5-turbo:',response)
+        print('gpt-3.5-turbo:', response)
         
     except Exception as e:
         print('gpt-3.5-turbo: 连接失败')
@@ -139,11 +186,12 @@ def main():
     try:
         llm_kimi = LLMAPI("kimi")
         response = llm_kimi.generateResponse(Q)
-        print('kimi:',response)
+        print('kimi:', response)
         
     except Exception as e:
         print('kimi: 连接失败')
         print(e)
+        
     
 if __name__ == "__main__":
     main()
