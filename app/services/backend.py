@@ -2,8 +2,7 @@ import time
 import pickle
 from datetime import datetime, timedelta
 from RLG.Request.llmapi import LLMAPI
-
-user_sessions={}
+from RLG.subsenario.task_genrate import task_generate
 
 class backend(object):
     '''
@@ -48,9 +47,7 @@ class backend(object):
         self.is_playing = False
         self.start_time = None
         self.total_played_time = 0
-        # 创建主系统
-        main_model=LLMAPI("KIMI-server",bg)
-        self._sub_model_dict['Main']=main_model
+
     def trans_control(self,sys_name):
         '''
         转交控制权
@@ -63,6 +60,7 @@ class backend(object):
             return
         if self.debug:
             print(f"Transferring control from {self.current_system} to {sys_name}")
+        # TODO: 给出玩家信息
         self.current_system=sys_name
 
     def start_game(self):
@@ -110,15 +108,92 @@ class backend(object):
         与当前活跃的系统对话
         :return:
         '''
-        text = data.get('text', '')
-        role = data.get('role', '玩家')
-
+        text=data.get('text','')
+        user=data.get('user','玩家')
         if self.debug:
             print(f"generate response from {self.current_system},text:{text}")
-        llm:LLMAPI = self._sub_model_dict.get(self.current_system)
-        response= llm.generateResponse(text)
-        return {'text': response, "role": self.current_system}
 
+        #TODO: 用一个工具函数判断玩家需求.接任务/对话 接任务-accept
+        if ():
+            self.accept(task_name)
+            #TODO: 用工具,把信息,调用的系统传给工具函数进行对话
+            llm:LLMAPI=self._sub_model_dict[self.current_system]
+            player=self.pl_data[user]
+            time=self.get_game_time()
+            response=llm.generateResponse(f'时间:{time}\n玩家{user}:{player}接取了任务,请你进行任务开场.',return_json=True)
+        else :
+            llm: LLMAPI = self._sub_model_dict[self.current_system]
+            player = self.pl_data[user]
+            time = self.get_game_time()
+            response = llm.generateResponse(f"{time}\n{text}", return_json=True)
+        # TODO: 用工具函数判断返回的信息.任务完成/正常对话. 任务完成-玩家信息修改,transfer
+        if ():
+            # 更新玩家资源待完善
+            self.pl_data[user]['resource']=response.get('resource')
+            response = llm.generateResponse(f'请你进行任务总结.', return_json=True)
+            self.trans_control("Main")
+            time=self.get_game_time()
+            response = llm.generateResponse(f'时间:{time}\n玩家{user}:{player}完成了任务,以下是任务完成的梗概.{response["choices"][0]["message"]["content"]}', return_json=True)
+            return response
+        else:
+            return response
+
+    def accept(self,task_name):
+        # TODO:根据任务状态,返回不能接任务\接取任务,更新任务状态,转交控制权(回到chat中).
+        if self.quest_list[task_name]['status']:
+            self.quest_list[task_name]['status']=0
+            self.trans_control(task_name)
+            return True
+        return False
+
+    def init(self,data):
+        # TODO: 存玩家数据并初始化系统和任务(使用工具).返回主系统问候.
+        '''
+
+        :param data:
+        玩家数据:
+        - 名字
+        - 描述信息
+        - 初始资源:
+            - 具体资源a
+            - 具体资源b
+            - 具体资源c
+        :return:
+        '''
+        player=data.get('player_name')
+        player_info=data.get("player_info")
+        player_resource=data.get("resource")
+        self.pl_data[player]={
+            'player_info':player_info,
+            'resource':player_resource
+        }
+        task_name,task_info,task_model=task_generate('互动任务')
+        '''
+        task_info:{
+                "info":任务描述
+                "status":任务状态
+            }
+        '''
+        task_info['user']=player
+        self.quest_list[task_name]=task_info
+        self._sub_model_dict[task_name]=task_model
+        # 创建主系统
+        main_model = LLMAPI("KIMI-server", self.bg)
+        self._sub_model_dict['Main'] = main_model
+        response = self.chat({"text":f'以下是玩家信息:\n姓名:{player}\n描述:{player_info},请你进行游戏开场问候'})
+        self.start_game()
+        return response
+
+    def get_quest(self,data):
+        # 调用任务生成
+        player=data.get('role')
+        task_type=data.get('task')
+        description=data.get('description','任意')
+        quest_name,quest_info,quest_Model=task_generate(task_type,description)
+        quest_info['user']=player
+        self.quest_list[f'{quest_name}']=quest_info
+        self._sub_model_dict['quest_name']=quest_Model
+        return {'quest_name':quest_name,'quest_info':quest_info}
 
     @property
     def quest_list(self):
