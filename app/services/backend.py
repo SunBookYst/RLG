@@ -1,36 +1,21 @@
 import time
 import pickle
 from datetime import datetime, timedelta
-from RLG.Request.llmapi import LLMAPI
-from RLG.subsenario.task_genrate import task_generate
-
+from RLG.utils import *
 class backend(object):
     '''
     后台系统类
-        包含属性
-        bg:背景信息
-        _quest_list:存储任务的字典(任务名:任务信息)
-        _sub_model_dict:存储子模型的字典(模型名:模型)
-        _pl_data:存储玩家信息的字典(玩家名:玩家信息)
-        time_set:时间流速,每多少分钟过去一天
-        游戏状态和时间管理:
-        self.is_playing :是否在进行游戏
-        self.start_time :本次开始记录时间
-        self.total_played_time :以往经过时间
-        current_system:记录当前活跃的系统,即掌握控制权的系统
-        debug:是否打印相关信息
-        包含方法
-        trans_control:将控制权移交给[sys_name]系统
-        get_game_time:获取游戏时间
     '''
-    def __init__(self,bg,time_set=40,debug=False):
+    def __init__(self,time_set=40,debug=False):
         '''
         :param bg:给主系统的prompt
         :param time_set: 时间流苏,每多少分钟过去一天
         :param debug: 是否打印信息 Default:False
         '''
-        # 背景信息
-        self.bg=bg
+        # 主要模型
+        self.task_generator=None
+        self.bg_generator=None
+        self.sd=None
         # 任务列表
         self._quest_list= {}
         # 已有模型列表
@@ -41,8 +26,6 @@ class backend(object):
         self.time_set=time_set
         # 当前活跃的系统 default:Main
         self.current_system='Main'
-        # 是否打印信息, default=False
-        self.debug:bool=debug
         # 游戏状态和时间管理
         self.is_playing = False
         self.start_time = None
@@ -55,12 +38,8 @@ class backend(object):
         :return:
         '''
         if sys_name not in self._sub_model_dict:
-            if self.debug:
-                print(f'fail to transfer control from {self.current_system} to {sys_name}\n{sys_name} not recognized')
+            print(f'fail to transfer control from {self.current_system} to {sys_name}\n{sys_name} not recognized')
             return
-        if self.debug:
-            print(f"Transferring control from {self.current_system} to {sys_name}")
-        # TODO: 给出玩家信息
         self.current_system=sys_name
 
     def start_game(self):
@@ -108,48 +87,35 @@ class backend(object):
         与当前活跃的系统对话
         :return:
         '''
-        text=data.get('text','')
-        user=data.get('user','玩家')
-        if self.debug:
-            print(f"generate response from {self.current_system},text:{text}")
-
-        #TODO: 用一个工具函数判断玩家需求.接任务/对话 接任务-accept
-        if ():
-            self.accept(task_name)
-            #TODO: 用工具,把信息,调用的系统传给工具函数进行对话
-            llm:LLMAPI=self._sub_model_dict[self.current_system]
-            player=self.pl_data[user]
-            time=self.get_game_time()
-            response=llm.generateResponse(f'时间:{time}\n玩家{user}:{player}接取了任务,请你进行任务开场.',return_json=True)
-        else :
-            llm: LLMAPI = self._sub_model_dict[self.current_system]
-            player = self.pl_data[user]
-            time = self.get_game_time()
-            response = llm.generateResponse(f"{time}\n{text}", return_json=True)
-        # TODO: 用工具函数判断返回的信息.任务完成/正常对话. 任务完成-玩家信息修改,transfer
-        if ():
-            # 更新玩家资源待完善
-            self.pl_data[user]['resource']=response.get('resource')
-            response = llm.generateResponse(f'请你进行任务总结.', return_json=True)
-            self.trans_control("Main")
-            time=self.get_game_time()
-            response = llm.generateResponse(f'时间:{time}\n玩家{user}:{player}完成了任务,以下是任务完成的梗概.{response["choices"][0]["message"]["content"]}', return_json=True)
-            return response
+        if self.current_system=='Main':
+            DM=self._sub_model_dict['Main']
+            response=talk_to_dm(DM,data)
         else:
-            return response
+            j,director,last_play=self._sub_model_dict[self.current_system]
+            end,response=task_play(director,j,data,last_play)
+            response['status']=False
+            self.sub_model_dict[self.current_system][2]=response
+            if end==True or end=="True":
+                self.current_system='Main'
+                task=self.quest_list[self.current_system]
+                self.pl_data['resource']+=task['reward']
+                self._sub_model_dict.pop[self.current_system]
+                self.quest_list.pop[self.current_system]
+                response['status']=True
+        return response
 
     def accept(self,task_name):
-        # TODO:根据任务状态,返回不能接任务\接取任务,更新任务状态,转交控制权(回到chat中).
-        if self.quest_list[task_name]['status']:
-            self.quest_list[task_name]['status']=0
+        task=self.quest_list[task_name]
+        if task['status']:
+            j,task_director,start_response=task_init(task)
+            task['status'] = False
+            self._sub_model_dict[task_name]=(j,task_director,'start')
             self.trans_control(task_name)
-            return True
-        return False
+            return start_response
+        return {'text':"该任务当前不可接受",'role':'Main'}
 
     def init(self,data):
-        # TODO: 存玩家数据并初始化系统和任务(使用工具).返回主系统问候.
         '''
-
         :param data:
         玩家数据:
         - 名字
@@ -167,33 +133,27 @@ class backend(object):
             'player_info':player_info,
             'resource':player_resource
         }
-        task_name,task_info,task_model=task_generate('互动任务')
-        '''
-        task_info:{
-                "info":任务描述
-                "status":任务状态
-            }
-        '''
-        task_info['user']=player
-        self.quest_list[task_name]=task_info
-        self._sub_model_dict[task_name]=task_model
-        # 创建主系统
-        main_model = LLMAPI("KIMI-server", self.bg)
-        self._sub_model_dict['Main'] = main_model
-        response = self.chat({"text":f'以下是玩家信息:\n姓名:{player}\n描述:{player_info},请你进行游戏开场问候'})
+        Main_sys, task_generator, bg_generator, sd=initialize_system()
+        self._sub_model_dict['Main']=Main_sys
+        self.task_generator=task_generator
+        self.bg_generator=bg_generator
+        self.sd=sd
+        task=task_generate(task_generator,'初始任务')
+        task['status']=True
+        self.quest_list[task['task_name']]=task
+
+        response=talk_to_dm(Main_sys,f'玩家信息:{player_info}\n请你进行游戏开场白')
         self.start_game()
         return response
 
-    def get_quest(self,data):
+    def generate_task(self,data):
         # 调用任务生成
         player=data.get('role')
         task_type=data.get('task')
         description=data.get('description','任意')
-        quest_name,quest_info,quest_Model=task_generate(task_type,description)
-        quest_info['user']=player
-        self.quest_list[f'{quest_name}']=quest_info
-        self._sub_model_dict['quest_name']=quest_Model
-        return {'quest_name':quest_name,'quest_info':quest_info}
+        task=task_generate(self.task_generator,task_type,description)
+        task['status']=True
+        self.quest_list[task['task_name']]=task
 
     @property
     def quest_list(self):

@@ -1,4 +1,4 @@
-from RLG.Request.llmapi import initialize_llm
+from request.llmapi import initialize_llm
 
 
 def read_file(prompt_name):
