@@ -34,6 +34,7 @@ class LLMAPI(object):
             self.chat_history = []
         else:
             self.chat_history = [{'role': 'system', 'content': initial_prompt}]
+        
         self.kimi_id = 'null'
 
     @retry(stop=stop_after_attempt(3))
@@ -151,6 +152,20 @@ class LLMAPI(object):
                     except json.JSONDecodeError:
                         print("Failed to decode JSON:", data_str)
         return result, kimi_id
+    
+    def getAllConversation(self):
+        """
+        
+        Get the conversation of the whole sessions.
+
+        Returns:
+            List[str{str:str}]: the conversation list, formatting as:
+            {
+                'role': 'user'/'assistant',
+                'content': [the message in str]
+            }
+        """
+        return self.chat_history
 
 
 def initialize_llm(prompt, type="KIMI-server"):
