@@ -3,7 +3,7 @@ import io
 import base64
 from PIL import Image
 
-from llmapi import LLMAPI
+from request.llmapi import LLMAPI
 
 
 def read_file(path):
@@ -84,6 +84,22 @@ class StableDiffusion:
           "image": "",
         }
 
+        self.background = {
+            "prompt": "masterpiece,best quality, ultra-detailed, highres,",
+            "negative_prompt": "low quality, human, man, character",
+            "seed": -1,
+            "batch_size": 1,
+            "n_iter": 1,
+            "steps": 20,
+            "cfg_scale": 7,
+            "width": 512,
+            "height": 256,
+            "override_settings": {
+                "sd_model_checkpoint": "coffeensfw_v10.safetensors [ed47f47f0a]",
+            },
+            "sampler_index": "DPM++ 2M Karras",
+        }
+
         # Authorization headers (if needed)
         self.headers = {
             "Authorization": "Basic TXVZaVBhcmFzb2w6MjAwMzAxMjQ="
@@ -99,7 +115,7 @@ class StableDiffusion:
         print("Entering additional input for the prompt...")
         self.t2i['prompt'] += prompt
 
-    def generate_images(self):
+    def generate_images(self, prompt=None):
         """
         Generates images based on the current prompt.
 
@@ -110,10 +126,10 @@ class StableDiffusion:
         """
         # Stable Diffusion API URL
         url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
-
+        self.t2i['prompt'] += prompt
         # Make the API request
         print("Generating...")
-        response = requests.post(url, json=self.t2i, headers=self.headers)
+        response = requests.post(url, json=self.background, headers=self.headers)
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Process the response
@@ -126,6 +142,37 @@ class StableDiffusion:
             # Save the image
             with Image.open(io.BytesIO(img_bytes)) as img:
                 img.save(f'output_{i}.png')
+
+        print("Images saved successfully.")
+        return imgb
+
+    def generate_background(self, prompt=None):
+        """
+        Generates images based on the current prompt.
+
+        Makes an API request to the Stable Diffusion server to generate images.
+
+        Returns:
+            str: Base64 string of the generated image.
+        """
+        # Stable Diffusion API URL
+        url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
+        self.background['prompt'] += prompt
+        # Make the API request
+        print("Generating...")
+        response = requests.post(url, json=self.background, headers=self.headers)
+        response.raise_for_status()  # Raise an error for bad status codes
+
+        # Process the response
+        r = response.json()
+        imgb = ""
+        for i, img_data in enumerate(r['images']):
+            # Decode the base64 image data
+            img_bytes = base64.b64decode(img_data.split(",", 1)[0])
+            imgb = img_data
+            # Save the image
+            with Image.open(io.BytesIO(img_bytes)) as img:
+                img.save(f'output_b.png')
 
         print("Images saved successfully.")
         return imgb
@@ -160,7 +207,7 @@ class StableDiffusion:
 
 
 def main():
-    t2i_prompt = read_file('../prompts/txt2img.txt')
+    t2i_prompt = read_file('txt2img_character')
 
     prompt_generator = LLMAPI("KIMI-server")
     response = prompt_generator.generateResponse(t2i_prompt)
@@ -168,8 +215,7 @@ def main():
 
     content = prompt_generator.generateResponse(input("请输入需求："))
     sd = StableDiffusion()
-    sd.input_prompt(content)
-    image = sd.generate_images()
+    image = sd.generate_images(content)
     sd.process_images(image)
 
 
