@@ -45,6 +45,9 @@ class StableDiffusion:
         """
         Initializes the StableDiffusion instance with default parameters for text-to-image generation and image processing.
         """
+        self.prompt_generator_c = LLMAPI("KIMI-server")
+        self.prompt_generator_b = LLMAPI("KIMI-server")
+
         self.t2i = {
             "prompt": "masterpiece,best quality, ultra-detailed, highres, clear face, only 1 character",
             "negative_prompt": "bad hand, (ugly:1.5), lowres, bad anatomy, [:((No more than one thumb, "
@@ -100,10 +103,13 @@ class StableDiffusion:
             "sampler_index": "DPM++ 2M Karras",
         }
 
-        # Authorization headers (if needed)
         self.headers = {
             "Authorization": "Basic TXVZaVBhcmFzb2w6MjAwMzAxMjQ="
         }
+
+    def initialize(self):
+        self.prompt_generator_c.generateResponse(read_file("txt2img_character"))
+        self.prompt_generator_b.generateResponse(read_file("txt2img_background"))
 
     def input_prompt(self, prompt):
         """
@@ -202,22 +208,31 @@ class StableDiffusion:
 
         # Save the image
         image.save(f'output_p.png')
-
         print("Images saved successfully.")
 
+        return image
 
-def main():
-    t2i_prompt = read_file('txt2img_character')
+    def standard_workflow(self, need, mode):
+        """
+        标准工作流程
+        :param need: 需求描述
+        :param mode: 1（人像模式）|2（背景模式）
+        :return: 像素化后的图片
+        """
+        positive_prompt = ""
 
-    prompt_generator = LLMAPI("KIMI-server")
-    response = prompt_generator.generateResponse(t2i_prompt)
-    print(response)
+        if mode == 1:
+            positive_prompt = self.prompt_generator_c.generateResponse(need)
+        elif mode == 2:
+            positive_prompt = self.prompt_generator_b.generateResponse(need)
 
-    content = prompt_generator.generateResponse(input("请输入需求："))
-    sd = StableDiffusion()
-    image = sd.generate_images(content)
-    sd.process_images(image)
+        image = self.generate_images(positive_prompt)
+        return self.process_images(image)
 
 
 if __name__ == "__main__":
-    main()
+    sd = StableDiffusion()
+    sd.initialize()
+    sd.standard_workflow("一个小姑娘", 1)
+    sd.standard_workflow("一栋房子", 1)
+
