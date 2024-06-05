@@ -20,19 +20,24 @@ def read_file(prompt_name):
 def initialize_system():
     """
     当玩家登入时直接调用
-    :return: DM、任务生成系统(task_generator)、背景生成系统(bg_generator)、绘图系统(sd)
+    :return: DM、任务生成系统(task_generator)、背景生成系统(bg_generator)、绘图系统(sd)、装备制造系统(eq)、技能创造系统(sk)
     """
     # 初始化模型
     dm_prompt = read_file("DM")
-    DM = initialize_llm(dm_prompt)
     task_prompt = read_file("task")
-    task_generator = initialize_llm(task_prompt)
     bg_prompt = read_file('txt2img_background')
+    eq_prompt = read_file('equipment_craft')
+    sk_prompt = read_file('skill_generate')
+
+    DM = initialize_llm(dm_prompt)
+    task_generator = initialize_llm(task_prompt)
     bg_generator = initialize_llm(bg_prompt)
+    eq = initialize_llm(eq_prompt)
+    sk = initialize_llm(sk_prompt)
     sd = StableDiffusion()
     sd.initialize()
 
-    return DM, task_generator, bg_generator, sd
+    return DM, task_generator, bg_generator, sd, eq, sk
 
 
 def task_generate(task_generator, task_type, description="任意"):
@@ -93,6 +98,39 @@ def task_play(task_director, j, player_input=None, player_status=None, last_play
     judged_input = f'{"player":{player_input}, "status":{judge["judge"]}, "reason":{judge["reason"]}}'
     play = json.loads(task_director.generateResponse({judged_input}))
     return judge, play
+
+
+def equipment_craft(eq, inject, description):
+    """
+    装备锻造
+    :param eq: 装备制造系统
+    :param inject: 凤羽投入
+    :param description: 装备描述
+    :return: {
+                "name":
+                "cost": (根据凤羽数量计算能量总量)
+                "description": (包括具体参数、特殊功能等)
+                "outlook":
+            }
+    """
+    request = f"【使用者】我需要一个{description}的装备，对此我愿意投入{inject}凤羽。"
+    return json.loads(eq.generateResponse(request))
+
+
+def skill_generate(sk, inject, description):
+    """
+    技能请求
+    :param sk: 技能请求系统
+    :param inject: 龙眼投入
+    :param description: 技能描述
+    :return: {
+                "name":
+                "cost":(根据龙眼数量计算能量总量)
+                "effect":(技能效果)
+            }
+    """
+    request = f"【请求之人】我需要一个{description}的技能，对此我愿意投入{inject}龙眼。"
+    return json.loads(sk.generateResponse(request))
 
 
 if __name__ == "__main__":
