@@ -238,7 +238,14 @@ class BackEndSystem(object):
     # Some annoying things from log in.
     def checkNameValid(self, name):
         player_name_lists = self.player_dict.keys()
-        return name in player_name_lists
+
+        valid = name in player_name_lists
+
+        if valid == False:
+            self.registerPlayer(name, "")
+            return True
+        else:
+            return False
     
     def checkFeatureValid(self, feature):
         return True
