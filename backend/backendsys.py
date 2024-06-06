@@ -183,9 +183,10 @@ class BackEndSystem(object):
 
         self.task_queue = {}
 
-        template_task = self._task_generate("互动任务")
+        template_task = [self._task_generate("互动任务") for __ in range(4)]
 
-        self.task_queue[template_task["task_name"]] = template_task
+        for t in template_task:
+            self.task_queue[t["task_name"]] = t
         # Randomly generate some task. Add attributes: occupied/player.
 
         self.start_time = datetime.now()
