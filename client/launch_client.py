@@ -1,6 +1,7 @@
 import requests
 import random
 import pygame
+import json
 from copy import deepcopy
 # import pygame_textinput
 # from hanzi import TextBox
@@ -219,7 +220,7 @@ def main_menu(screen):
         clock.tick(FPS)
         pygame.display.update()
 
-def set_menu_1(screen):
+def set_menu_1(screen): #TODO补充名字发送函数
     '''
     输入名字
     '''
@@ -267,7 +268,17 @@ def set_menu_1(screen):
                 quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    role = input_text
+                    if len(input_text.replace(" ", "").replace("\t", "").replace("\n", "").replace("\r", ""))>0:
+                        try:
+                            role = input_text
+                            func = "/legal"
+                            r = requests.get(url=url+func,data = {"mode":0,"content":role})
+                            r_json = json.loads(r.text)
+                            if r_json["status"]!=True:
+                                input_text = "你的名字不合适"
+                                continue
+                        except:
+                            continue
                     #TODO 服务端检测名称是否合法，并保存人物名称
                     if False: #默认合法
                         legal = False
@@ -275,8 +286,8 @@ def set_menu_1(screen):
                     menu = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
-                else:
-                    input_text += event.unicode
+            elif event.type == pygame.TEXTINPUT:
+                input_text += event.text
         if fade_out == True:
             alpha-=fade_speed
         if alpha<=0:
@@ -340,8 +351,8 @@ def set_menu_2(screen):
                     menu = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
-                else:
-                    input_text += event.unicode
+            elif event.type == pygame.TEXTINPUT:
+                input_text += event.text
         if fade_out == True:
             alpha-=fade_speed
         if alpha<=0:
@@ -350,61 +361,80 @@ def set_menu_2(screen):
         pygame.display.update()
 
 def button_1_function():
-    global long_text, start_line
-    start_line = 0
+    global info_long_text, info_start_line
+    info_start_line = 0
     print("按钮1被点击了！")
     func = "/task_info"
-    # r = requests.get(url=url+func,json={'role':role})
-    # task_list = r['task_list']
+    try:
+        r = requests.get(url=url+func,json={'role':role})
+        r = json.loads(r.text)
+        task_list = r['task_list']
+    except:
+        task_list = ["请求失败，请重试"]
     task_list = ["帮助市民寻找丢失的小猫","击败盘踞在城镇边缘的强盗团伙","温泉缺水"]
     for i in range(len(task_list)):
         task_list[i] = str(i)+"."+task_list[i]
-    long_text = line_break.join(task_list)
+    info_long_text = line_break.join(task_list)
 
 def button_2_function():
-    global long_text, start_line
-    start_line = 0
+    global info_long_text, info_start_line
+    info_start_line = 0
     print("按钮2被点击了！")
     func = "/attribute"
-    # r = requests.get(url=url+func,json={'role':role})
-    # attribute = r['attribute']
-    attribute = {"物质":100,"能量":200,"等级":10}
-    long_text = line_break.join([key+':'+str(attribute[key]) for key in attribute.keys()])
+    try:
+        r = requests.get(url=url+func,json={'role':role})
+        r = json.loads(r.text)
+        attribute = r['attribute']
+    except:
+        attribute = {"请求失败":"请检查"}
+    # attribute = {"龙眼":100,"凤羽":200,"等级":10}
+    info_long_text = line_break.join([key+':'+str(attribute[key]) for key in attribute.keys()])
 
 def button_3_function():
-    global long_text, start_line
-    start_line = 0
+    global info_long_text, info_start_line
+    info_start_line = 0
     print("按钮3被点击了！")
     func = "/bag"
-    # r = requests.get(url=url+func,json={'role':role})
-    # equipments = r['equipments']
+    try:
+        r = requests.get(url=url+func,json={'role':role})
+        r = json.loads(r.text)
+        equipments = r['equipments']
+    except:
+        equipments = {"请求失败":"请检查"}
     equipments = {"无锋剑":"平平无奇的铁剑，还未开锋","泻药":"释放给敌人后有概率使其拉肚子","钢铁侠的机甲":"可以发动强力攻击，并使得使用者快速移动"}
-    long_text = line_break.join([key+':'+str(equipments[key]) for key in equipments.keys()])
+    info_long_text = line_break.join([key+':'+str(equipments[key]) for key in equipments.keys()])
 
 def button_4_function():
-    global long_text, start_line
-    start_line = 0
+    global info_long_text, info_start_line
+    info_start_line = 0
     print("按钮 4被点击了！")
     func = "/skill"
-    # r = requests.get(url=url+func,json={'role':role})
-    # skills = r['skills']
-    skills = {"闭目养神":"通过少许的休息换取少许的体力","温故而知新":"任务后获取的经验值有较大概率额外增加","没轻没重":"攻击时的伤害波动增大"}
-    long_text = line_break.join([key+':'+str(skills[key]) for key in skills.keys()])
+    try:
+        r = requests.get(url=url+func,json={'role':role})
+        r = json.loads(r.text)
+        skills = r['skills']
+    except:
+        skills = {"请求失败":"请检查"}
+    # skills = {"闭目养神":"通过少许的休息换取少许的体力","温故而知新":"任务后获取的经验值有较大概率额外增加","没轻没重":"攻击时的伤害波动增大"}
+    info_long_text = line_break.join([key+':'+str(skills[key]) for key in skills.keys()])
+
 
 def button_5_function():
-    global long_text, start_line
-    start_line = 0
+    global info_long_text, info_start_line
+    info_start_line = 0
     print("按钮 5被点击了！")
     if current_page==SHOW_MAIN_PAGE:
-        long_text = line_break.join(dialogue_history)
+        info_long_text = line_break.join(dialogue_history)
     else:
-        long_text = line_break.join(vice_history)
+        info_long_text = line_break.join(vice_history)
 
 def button_6_function(): #测试切换页面功能用
     global current_page,main_alpha,vice_alpha, system_text,volume
     global changed
+    global vice_history, dialogue_history
     if current_page == SHOW_MAIN_PAGE:
         current_page =SHOW_VICE_PAGE
+        vice_history.append(r['role']+':'+r['text'])
         vice_alpha = 20
         main_alpha = 20
         system_text = "现在在执行任务"*20
@@ -415,6 +445,7 @@ def button_6_function(): #测试切换页面功能用
         pygame.mixer.music.play(-1)
     else:
         current_page = SHOW_MAIN_PAGE
+        dialogue_history.append(r['role']+':'+r['text'])
         main_alpha = 20
         vice_alpha = 20
         system_text = "现在回到主界面了"*20
@@ -422,6 +453,27 @@ def button_6_function(): #测试切换页面功能用
         changed = True
         pygame.mixer.music.load(music_file_1)
         pygame.mixer.music.play(-1)
+
+def button_7_function(num,text,mode): #提交合成资料
+    global info_long_text, info_start_line
+    print("发送的信息是：",num,text,mode)
+    info_start_line = 0
+    if num=="":
+        num = 0
+    else:
+        num = int(num)
+    print("按钮 7被点击了!")
+    func = "/merge"
+    try:
+        r = requests.get(url=url+func,json={'role':role,'mode':mode,'num':num,'des':text})
+        text = r['text']
+    except:
+        text = "请求失败，请重试"
+    text = "冒出一阵金光，装备合成成功"
+    # if current_page==SHOW_MAIN_PAGE:
+    info_long_text = text
+    # else:
+    # long_text = line_break.join(vice_history)
 
 def is_mouse_in_rect(mouse_pos, rect_x, rect_y, rect_width, rect_height):
     if rect_x <= mouse_pos[0] <= rect_x + rect_width and \
@@ -431,7 +483,7 @@ def is_mouse_in_rect(mouse_pos, rect_x, rect_y, rect_width, rect_height):
         return False
 
 
-button_functions = [button_1_function, button_2_function, button_3_function, button_4_function, button_5_function,button_6_function]
+button_functions = [button_1_function, button_2_function, button_3_function, button_4_function, button_5_function,button_6_function, button_7_function]
 buttons = [pygame.Rect(B_x[i], B_y[i], B_w[i], B_h[i]) for i in range(BUTTON_NUM)]
 
 pygame.init()
@@ -461,29 +513,47 @@ main_screen.fill((50, 50, 50))
 
 main_surface = pygame.Surface((1280, 900), pygame.SRCALPHA)
 image_surface = pygame.Surface((1280, 900))
+dropdown = Dropdown(1280, 640, 320, 40, font, "选择你的合成材料：", ["龙眼", "凤羽"])
+num_box = TextBox(1280, 680, 320, 40, font,0)
+
+info_text_surface = pygame.Surface((info_textbox_rect.width, info_textbox_rect.height))
+merge_text_surface = pygame.Surface((320, 140))
 
 clock = pygame.time.Clock()
 while running:
     events = pygame.event.get()
     for event in events:
+        mouse_pos = pygame.mouse.get_pos()
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_pos = pygame.mouse.get_pos()
             if event.button == 1:  # 左键点击
                 for i, button in enumerate(buttons):
                     if button.collidepoint(event.pos):
-                        button_functions[i]()
+                        if i != 6:
+                            button_functions[i]()
+                        if i == 6:
+                            button_functions[i](num_box.text,merge_long_text,dropdown.selected_num)
+                # if is_mouse_in_rect(mouse_pos,des_box.rect.x, des_box.rect.y, des_box.rect.width, des_box.rect.height):
+                    # des_box.handle_event(event)
+                if is_mouse_in_rect(mouse_pos,num_box.rect.x,num_box.rect.y,num_box.rect.width,num_box.rect.height):
+                    num_box.handle_event(event)
+                elif is_mouse_in_rect(mouse_pos,dropdown.rect.x,dropdown.rect.y,dropdown.rect.width,dropdown.rect.height):
+                    dropdown.handle_event(event)
             elif event.button == 4:  # 滚轮向上
                 if is_mouse_in_rect(mouse_pos, 0, 0, 1280, 900):
                     start_line = max(0, start_line - 1)
-                else:
+                elif is_mouse_in_rect(mouse_pos,info_textbox_rect.x,info_textbox_rect.y,info_textbox_rect.width,info_textbox_rect.height):
                     info_start_line = max(0,info_start_line - 1)
+                elif is_mouse_in_rect(mouse_pos,merge_textbox_rect.x,merge_textbox_rect.y,merge_textbox_rect.width,merge_textbox_rect.height):
+                    merge_start_line = max(0,merge_start_line - 1)
             elif event.button == 5:  # 滚轮向下
                 if is_mouse_in_rect(mouse_pos, 0, 0, 1280, 900):
                     start_line = min(len(lines) - textbox_rect.height // line_height, start_line + 1)
-                else:
+                elif is_mouse_in_rect(mouse_pos,info_textbox_rect.x,info_textbox_rect.y,info_textbox_rect.width,info_textbox_rect.height):
                     info_start_line = min(len(info_lines) - info_textbox_rect.height // info_line_height, info_start_line + 1)
+                elif is_mouse_in_rect(mouse_pos,merge_textbox_rect.x,merge_textbox_rect.y,merge_textbox_rect.width,merge_textbox_rect.height):
+                    merge_start_line = min(len(merge_lines) - merge_textbox_rect.height // merge_line_height, merge_start_line + 1)
             mouse_x, mouse_y = pygame.mouse.get_pos()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN:
@@ -492,16 +562,25 @@ while running:
                 else:
                     if current_page==SHOW_MAIN_PAGE:
                         dialogue_history.append(role+":"+input_text)
-                        # r = requests.get(url+"/main",json={'text':input_text,"role":role})
+                        try:
+                            r = requests.get(url+"/main",json={'text':input_text,"role":role})
+                            r = json.loads(r.text)
+                            system_text = r['text']
+                            role = r["role"]
+                            status = r["status"]
+                        except:
+                            system_text = "请重试"
+                            role = "请求失败"
+                            status = False
+                        # r= {}
+                        # r['role'] = "system"
+                        # r['text'] = "我不听我不听我不听"*10
                         # system_text = r['text']
-                        r= {}
-                        r['role'] = "system"
-                        r['text'] = "我不听我不听我不听"*10
-                        system_text = r['text']
-                        dialogue_history.append(r['role']+':'+r['text'])
+                        dialogue_history.append(role+':'+system_text)
                         #NOTE 从主系统过渡到任务执行状态
-                        if r['text']=="任务执行开始":#TODO 设置触发转换到任务状态的关键词,或者改为其他触发方式，由服务端确认后修改
+                        if status:#TODO 设置触发转换到任务状态的关键词,或者改为其他触发方式，由服务端确认后修改
                             current_page = SHOW_VICE_PAGE
+                            vice_history.append(role+':'+system_text)
                             vice_alpha = 20
                             main_alpha = 20
                             random_item = random.choice([music_file_2,music_file_3])
@@ -512,16 +591,27 @@ while running:
                             #TODO 同时为任务生成场景图，存放到用户的./image/文件夹下，同时在render_dialogue处指定被调用的图片
                     if current_page == SHOW_VICE_PAGE:
                         vice_history.append(role+":"+input_text)
-                        # r = requests.get(url+"/feedback",json={'text':input_text,"role":role})
+                        try:
+                            r = requests.get(url+"/feedback",json={'text':input_text,"role":role})
+                            r = json.loads(r.text)
+                            # system_text = r['text']
+                            role = r["role"]
+                            system_text = r["text"]
+                            status = r["status"]
+                        except:
+                            role="请求失败"
+                            system_text = "请重试"
+                            status = False
+                            # system_text = "请求失败，请重试"
+                        # r= {}
+                        # r['role'] = "system"
+                        # r['text'] = "我不听我不听我不听"*10
                         # system_text = r['text']
-                        r= {}
-                        r['role'] = "system"
-                        r['text'] = "我不听我不听我不听"*10
-                        system_text = r['text']
-                        system_text = "开始执行任务"*10
-                        vice_history.append(r['role']+':'+r['text'])
-                        if r['text']=="任务执行结束":#TODO 触发信息设置同上
+                        # system_text = "开始执行任务"*10
+                        vice_history.append(role+':'+system_text)
+                        if status:#TODO 触发信息设置同上
                             current_page = SHOW_MAIN_PAGE
+                            dialogue_history.append(role+':'+system_text)
                             main_alpha = 20
                             vice_alpha = 20
                             vice_history = [] #NOTE 任务内对话信息任务结束后不保存
@@ -532,9 +622,23 @@ while running:
                     input_text = ''
                     current_role = 0
             elif event.key == pygame.K_BACKSPACE:
-                input_text = input_text[:-1]
-            else:
-                input_text += event.unicode
+                if is_mouse_in_rect(mouse_pos,10, 600, 1250, 280):
+                    input_text = input_text[:-1]
+                elif is_mouse_in_rect(mouse_pos,num_box.rect.x, num_box.rect.y,num_box.rect.width,num_box.rect.height):
+                    num_box.handle_event(event)
+                elif is_mouse_in_rect(mouse_pos,merge_textbox_rect.x,merge_textbox_rect.y,merge_textbox_rect.width,merge_textbox_rect.height):
+                    merge_long_text = merge_long_text[:-1]
+                # elif is_mouse_in_rect(mouse_pos,des_box.rect.x, des_box.rect.y,des_box.rect.width,des_box.rect.height):
+                    # des_box.handle_event(event)
+        elif event.type == pygame.TEXTINPUT:
+            if is_mouse_in_rect(mouse_pos,10, 600, 1250, 280):
+                input_text += event.text
+            elif is_mouse_in_rect(mouse_pos,num_box.rect.x, num_box.rect.y,num_box.rect.width,num_box.rect.height):
+                num_box.handle_event(event)
+            elif is_mouse_in_rect(mouse_pos,merge_textbox_rect.x,merge_textbox_rect.y,merge_textbox_rect.width,merge_textbox_rect.height):
+                merge_long_text += event.text
+            # elif is_mouse_in_rect(mouse_pos,des_box.rect.x, des_box.rect.y,des_box.rect.width,des_box.rect.height):
+                # des_box.handle_event(event)
 
     if changed:
         render_image(image_surface)
@@ -555,17 +659,40 @@ while running:
         button_text_rect = button_text_surface.get_rect(center=buttons[i].center)
         main_screen.blit(button_text_surface, button_text_rect)
 
+
     # 渲染右侧信息框
-    text_surface = pygame.Surface((info_textbox_rect.width, info_textbox_rect.height))
-    text_surface.fill((50, 50, 50))
+    # info_text_surface = pygame.Surface((info_textbox_rect.width, info_textbox_rect.height))
+    info_text_surface.fill((50, 50, 50))
     pos = (0, 0)
-    info_lines = [long_text[i:i+info_w_num] for i in range(0, len(long_text), info_w_num)]
+    info_lines = [info_long_text[i:i+info_w_num] for i in range(0, len(info_long_text), info_w_num)]
     for i, line in enumerate(info_lines[info_start_line:]):
-        pos = render_text_slide(text_surface, line, pos, info_textbox_rect.width,(255,255,255),font)
+        pos = render_text_slide(info_text_surface, line, pos, info_textbox_rect.width,(255,255,255),font)
         if pos[1]>=info_textbox_rect.height:
             break
 
-    main_screen.blit(text_surface, info_textbox_rect.topleft)
+    main_screen.blit(info_text_surface, info_textbox_rect.topleft)
+
+    merge_text_surface.fill((50,50,50))
+    m_pos = (0, 0)
+    merge_lines = [merge_long_text[i:i+merge_w_num] for i in range(0, len(merge_long_text), merge_w_num)]
+    for i, line in enumerate(merge_lines[merge_start_line:]):
+        m_pos = render_text_slide(merge_text_surface, line, m_pos, merge_textbox_rect.width,(255,255,255),font)
+        if m_pos[1]>=merge_textbox_rect.height:
+            break
+
+    main_screen.blit(merge_text_surface, merge_textbox_rect.topleft)
+
+    pygame.draw.rect(main_screen, (255,255,255),pygame.Rect(1280,500,320,20))
+    button_text_surface = font.render("          合成描述↓↓↓", True, (0,0,0))
+    # button_text_rect = pygame.Rect(1280,620,320,20)
+    # merge_text_surface.blit(button_text_surface, button_text_rect)
+    main_screen.blit(button_text_surface, (1280,500))
+    main_screen.blit(merge_text_surface, (1280,520))
+
+    dropdown.draw(main_screen)
+    num_box.draw(main_screen)
+    # des_box.draw(main_screen)
+    # main_screen.blit(merge_text_surface, merge_textbox_rect.topleft)
     clock.tick(FPS)
     pygame.display.flip()
 

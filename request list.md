@@ -9,10 +9,11 @@ Request List
 - 人物信息，发送：{'role':str}; 路由：/status；期望接收: {'attribute':dict} #dict的key后端决定,可以包括物质，能量，经验，等级以及其他属性信息
 - 背包信息，发送：{'role':str}; 路由：/bag；期望接收：{'equipments':dict} # key为物品名称，value需要统一一下，可以为list或者物品描述
 - 技能信息，发送：{'role':str};路由：/skill； 期望接收：{'skills':dict} # key为技能名称，value需要统一一下，可以为list或者技能描述
+- 合成界面，发送：{'role':str,'mode':0/1,'num':int,'des':str};路由：/merge； 期望接收：{'text':str} # 返回的文本可以描述一下新获得的物品, mode 0是合成技能,1是合成装备,des是对合成技能/装备的描述
 <!-- -  -->
 <!-- - 接受某任务，发送：{'text':str, 'role':str}；路由：/accept；期望接收：{'status':bool,''} -->
 ### 暂时不要紧的
 - 当前时间，发送：{'role':str}；路由：/time；期望接收：{'time':str} 返回该角色对应的时间
-- 检测合法性，发送：{'mode':0 或 1，'content':str}， 模式0检测姓名，模式1检测人物设定；路由：/legal；期望接收 {'status':bool}
+- 检测合法性，发送：{'mode':0或1，'content':str}， 模式0检测姓名，模式1检测人物设定；路由：/legal；期望接收 {'status':bool}
 - 其他特殊事件（暂定），发送{'info':str,'role':str,'text':str}，描述任务，并附上玩家输入的text；路由：/others；期望接收：{’role':str,'text':str,'other':str}
 - 其它系统，待定

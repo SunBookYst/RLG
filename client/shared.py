@@ -38,6 +38,87 @@ brick_6 = pygame.Rect(400,848,16,16)
 brick_7 = pygame.Rect(432,848,16,16)
 brick_8 = pygame.Rect(464,848,16,16)
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+
+class TextBox:
+    def __init__(self, x, y, w, h, font,mode):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = BLACK
+        self.font = font
+        self.text = ""
+        self.active = False
+        self.mode = mode
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # 如果单击文本框，则激活它
+            self.active = self.rect.collidepoint(event.pos)
+        if event.type == pygame.KEYDOWN and self.active:
+            if event.key == pygame.K_BACKSPACE:
+                self.text = self.text[:-1]
+        if event.type == pygame.TEXTINPUT and self.active:
+            if self.mode==1:
+                self.text += event.text
+            else:
+                if event.text.isdigit():
+                    self.text += event.text
+                else:
+                    self.text = self.text
+
+    def draw(self, screen):
+        # 绘制文本框
+        pygame.draw.rect(screen, self.color, self.rect, 3 if self.active else 1)
+        # 渲染文本
+        text_surf = self.font.render(self.text, True, WHITE)
+        screen.blit(text_surf, (self.rect.x + 5, self.rect.y + 5))
+        # pygame.draw.rect(screen, BLACK, self.rect, 2)
+
+class Dropdown:
+    def __init__(self, x, y, w, h, font, main, options):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = WHITE
+        self.font = font
+        self.main = main
+        self.options = options
+        self.selected = options[0]
+        self.selected_num = 0
+        self.expanded = False
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect)
+        text_surf = self.font.render(self.main+self.selected, True, BLACK)
+        screen.blit(text_surf, text_surf.get_rect(center=self.rect.center))
+
+        # if self.expanded:
+        #     for i, option in enumerate(self.options):
+        #         option_rect = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.height, self.rect.width, self.rect.height)
+        #         pygame.draw.rect(screen, GRAY if i % 2 == 0 else WHITE, option_rect)
+        #         option_surf = self.font.render(option, True, BLACK)
+        #         screen.blit(option_surf, option_surf.get_rect(center=option_rect.center))
+
+    def handle_event(self, event): #FIXME 切换成循环切换的逻辑会更好
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                # self.expanded = not self.expanded
+                if self.selected_num==0:
+                    self.selected_num=1
+                    self.selected = "凤羽"
+                else:
+                    self.selected_num=0
+                    self.selected = "龙眼"
+            # elif self.expanded:
+            #     for i, option in enumerate(self.options):
+            #         option_rect = pygame.Rect(self.rect.x, self.rect.y + (i + 1) * self.rect.height, self.rect.width, self.rect.height)
+            #         if option_rect.collidepoint(event.pos):
+            #             self.selected = option
+            #             self.selected_num = i
+            #             self.expanded = False
+            #             break
+            #     else:
+            #         self.expanded = False
+
 
 map_size_col = 80
 map_size_row = 64
@@ -63,16 +144,16 @@ SHOW_VICE_PAGE = 1
 current_page = SHOW_MAIN_PAGE
 
 # buttons
-BUTTON_NUM = 6
+BUTTON_NUM = 7
 B_i = [""]
-B_t = ["任务","属性","背包","技能","历史","测试"] # box text
-B_x = [1280,1360,1440,1520,1280,1360]
-B_y = [600,600,600,600,680,680]
-B_w = [80,80,80,80,80,80] # box weight
-B_h = [80,80,80,80,80,80] # box height
-B_h_c = [(140,140,140),(140,140,140),(140,140,140),(140,140,140),(140,140,140),(140,140,140)] # box hover color
-B_c = [(190,190,190),(190,190,190),(190,190,190),(190,190,190),(190,190,190),(190,190,190)] # box color
-T_c = [(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0)] # text color
+B_t = ["任务","属性","背包","技能","历史","测试","提交"] # box text
+B_x = [1280,1360,1440,1520,1280,1360,1440]
+B_y = [740,740,740,740,820,820,820]
+B_w = [80,80,80,80,80,80,80] # box weight
+B_h = [80,80,80,80,80,80,80] # box height
+B_h_c = [(140,140,140),(140,140,140),(140,140,140),(140,140,140),(140,140,140),(140,140,140),(140,140,140)] # box hover color
+B_c = [(190,190,190),(190,190,190),(190,190,190),(190,190,190),(190,190,190),(190,190,190),(190,190,190)] # box color
+T_c = [(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0),(0,0,0)] # text color
 
 music_file_1 = CLIENT_PATH + "\sound\Pixel Parade.mp3"
 music_file_2 = CLIENT_PATH + "\sound\Pixel Battle.mp3"
@@ -81,7 +162,9 @@ music_file_3 = CLIENT_PATH + "\sound\Pixel Battle2.mp3"
 
 FPS=45 #全局帧率
 screen_width, screen_height = 1280, 720 #替换为获取
-long_text = "这是一个示例文本。" * 200 #用于填充 信息 板块
+# long_text = "这是一个示例文本。" * 200 #用于填充 信息 板块
+# long_text_merge = "这是一个示例"*10
+# dropdown = Dropdown(100, 50, 200, 40, font, "选择一个选项", ["选项1", "选项2", "选项3"])
 url = "xxx"#TODO 服务端url地址
 role = '' #TODO 在初始界面确定角色名称，服务端检测，禁止重名
 role_set = ''
@@ -111,10 +194,17 @@ vice_offset = 0
 vice_alpha = 20
 
 #NOTE 右侧info框
+info_long_text = "这是一个示例文本。" * 200
 info_line_height = font.get_linesize()
-info_textbox_rect = pygame.Rect(1280, 0, 320, 600)
+info_textbox_rect = pygame.Rect(1280, 0, 320, 500)
 info_scroll_offset = 0 #NOTE info界面滚轴偏移量
 info_start_line = 0
 info_w_num = info_textbox_rect.width//(info_line_height-2)
 info_lines = []
 pos = (0, 0) # 渲染info文字使用的变量
+
+merge_long_text = "这是一个示例"*10
+merge_textbox_rect = pygame.Rect(1280, 520, 320, 120)
+merge_line_height = font.get_linesize()
+merge_start_line = 0
+merge_w_num = merge_textbox_rect.width//(merge_line_height-2)
