@@ -97,7 +97,7 @@ class LLMAPI(object):
                         "content": prompt
                     }
                 ],
-                "use_search": True,
+                "use_search": False,
                 "stream": stream
             }
 

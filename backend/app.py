@@ -5,4 +5,4 @@ app = Flask(__name__)
 
 app.register_blueprint(game_routes)
 
-app.run()
+app.run(host='0.0.0.0', port = 5000)

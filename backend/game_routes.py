@@ -11,7 +11,7 @@ bs = BackEndSystem()
 game_routes = Blueprint('game_routes', __name__)
 
 
-@game_routes.route('/main', methods=['POST'])
+@game_routes.route('/main', methods=['GET'])
 def interact_with_dm():
     """
     data is 
@@ -30,9 +30,11 @@ def interact_with_dm():
     data = request.json
     response, __ = bs.getPlayerInput(player_name = data["role"], player_input = data["text"])
 
+    # ?What is this thing...
+
     return response
 
-@game_routes.route('/feedback', methods=['POST'])
+@game_routes.route('/feedback', methods=['GET'])
 def interact_with_task():
     data = request.json
     
@@ -41,43 +43,60 @@ def interact_with_task():
 
     judge_response, task_response = bs.getPlayerInput(player_name = data["role"], player_input = data["text"])
 
+    print('[server]',task_response)
+
     return task_response
 
-@game_routes.route('/task_info', methods=['POST'])
+@game_routes.route('/task_info', methods=['GET'])
 def get_all_tasks():
     data = request.json
-    return bs.getAllAvailableTasks(data["role"])
+    return {'task_list': bs.getAllAvailableTasks(data["role"]) }
 
-@game_routes.route('/task_info', methods=['POST'])
+@game_routes.route('/status', methods=['GET'])
 def get_player_info():
     data = request.json
-    return bs.getPlayerInfo(data["role"])
 
-@game_routes.route('/bag', methods=['POST'])
+    response = bs.getPlayerInfo(data["role"])
+
+
+    return {'attribute': response}
+
+@game_routes.route('/bag', methods=['GET'])
 def get_player_bag():
-    return {'equipment': []}
+    data = request.json
+
+    return {'equipments':[]}
+
+    return {'equipment': bs.player_dict[data['role']].bag}
 
 
-@game_routes.route('/skill', methods=['POST'])
+@game_routes.route('/skill', methods=['GET'])
 def get_player_skill():
     return {'skills': []}
 
-@game_routes.route('/time', methods=['POST'])
+@game_routes.route('/time', methods=['GET'])
 def get_user_time():
     data = request.json
-    return bs.getPlayerTime(data["role"])
 
-@game_routes.route('/legal', methods=['POST'])
+    return {'time': bs.getPlayerTime(data["role"])}
+
+@game_routes.route('/legal', methods=['GET'])
 def check_name_legal():
     data = request.json
-    return bs.checkNameValid(data["role"])
+    if data["mode"] == 0:
+        response = bs.checkNameValid(data["content"])
+    elif data["mode"] == 1:
+        response = bs.checkFeatureValid(data["content"])
+    else:
+        return {'status':False}
+    return {'status':response}
 
-@game_routes.route('/merge', methods=['POST'])
+@game_routes.route('/merge', methods=['GET'])
 def get_an_item():
     data = request.json
     response = bs.craft_items(data["role"], data["mode"], data["num"], data["des"])
-    return str(response)
-    return bs.checkNameValid(data["role"])
+
+    return {'text': response["outlook"]}
 
 # TODO: save and load.
 # @game_routes.route('/save', methods=['POST'])
