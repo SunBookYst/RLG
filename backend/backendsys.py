@@ -1,33 +1,35 @@
 import sys
 sys.path.append('..')
 
-import time
-import pickle
 from datetime import datetime, timedelta
+from flask import jsonify
 
-from utils import *
+from subsenario.utils import *
 from request import LLMAPI, StableDiffusion
-
-from tenacity import retry, stop_after_attempt
+import json
 
 DEBUG = True
 
-def fixResponse(origin_text:str, attr:str):
 
+def fixResponse(origin_text:str, attr:str):
+    """
+    处理LLM所返回内容中潜在的格式错误
+    Args:
+        origin_text:
+        attr:
+
+    Returns:
+    处理好的文本
+    """
     index = origin_text.find(attr)
     if index == -1:
         return origin_text
     else:
-
         lquote = origin_text.find('"', index + len(attr) + 1)
-
         rquote = origin_text.find('"', lquote + 1)
-
         content = origin_text[lquote: rquote + 1]
         print(content)
-
         content = "\\n".join(content.split("\n"))
-
         text = origin_text[:lquote] + content + origin_text[rquote + 1:]
 
         return text
@@ -51,7 +53,6 @@ class Player(object):
     """
     A class to gather all the information of the player.
     """
-
     def __init__(self, 
                 name    : str,
                 feature : str,
@@ -65,7 +66,7 @@ class Player(object):
             "经验值": 0,
             "等级": 1
         }
-        # 凤羽/龙眼/  level Exp
+        # 凤羽/龙眼/level Exp
 
         self.dm_model      :LLMAPI = DM_model
         self.task_director :LLMAPI = None
@@ -89,7 +90,7 @@ class Player(object):
         self.current_task  = None
         return task_name
 
-    def makeAConversation(self, player_input:str):
+    def makeAConversation(self, player_input: str):
         """
         based on the input to generate a response.
 
@@ -109,7 +110,7 @@ class Player(object):
             print(response)
             response = json.loads(response)
             return response, {}
-        
+
         else:
             if DEBUG:
                 print("conversation with task")
@@ -122,7 +123,7 @@ class Player(object):
             content = json.dumps(play_infos)
 
             response = self.task_judge.generateResponse(content)
-            print('[judge]\n',response)
+            print('[judge]\n', response)
             judge = json.loads(response)
             print('=' * 10)
 
@@ -131,25 +132,24 @@ class Player(object):
             task_play["status"] = judge["judge"]
             task_play["reason"] = judge["reason"]
 
-            content = json.dumps(task_play)
+            content = json.dumps(task_play, ensure_ascii=False)
+            print(content)
 
             response = self.task_director.generateResponse(content)
 
             response = fixResponse(response, "text")
-            print('[task]\n',response)
-            with open("./debug.txt","w",encoding='utf-8') as f:
+            print('[task]\n', response)
+            with open("./debug.txt", "w", encoding='utf-8') as f:
                 f.write(response)
             print('=' * 10)
             play = json.loads(response)
             # play = json.loads(self.task_director.generateResponse(content))
 
             return judge, play
-        
-    def getReward(self,rewards):
-        for k,v in rewards:
+
+    def getReward(self, rewards):
+        for k, v in rewards.items():
             self.attributes[k] += v
-
-
 
 
 class BackEndSystem(object):
@@ -173,7 +173,7 @@ class BackEndSystem(object):
         _method3_ (type): _description_
     """
 
-    def __init__(self, one_day_length_minutes = 40):
+    def __init__(self, one_day_length_minutes=40):
         """
 
         Args:
@@ -195,7 +195,6 @@ class BackEndSystem(object):
 
         self.task_queue = {}
 
-
         task1 = self._task_generate("互动任务")
         task2 = self._task_generate("助人任务")
         task3 = self._task_generate("好汉任务")
@@ -203,7 +202,6 @@ class BackEndSystem(object):
         self.task_queue[task1["task_name"]] = task1
         self.task_queue[task2["task_name"]] = task2
         self.task_queue[task3["task_name"]] = task3
-
 
         self.start_time = datetime.now()
 
@@ -251,7 +249,6 @@ class BackEndSystem(object):
         task["player"] = None
         return task
 
-
     # Some annoying things from log in.
     def checkNameValid(self, name):
         player_name_lists = self.player_dict.keys()
@@ -263,7 +260,7 @@ class BackEndSystem(object):
             return True
         else:
             return False
-    
+
     def checkFeatureValid(self, feature):
         return True
 
@@ -300,10 +297,10 @@ class BackEndSystem(object):
 
         # print(player.task_focus, response1["status"])
         # print(player.task_focus == False , response1["status"] == 1)
-
+        '''
         if player.task_focus == False and response1["status"] == 1:
             print("Changing scene.")
-            selected, initial_state = self.selectTask(player_name, response1["task_name"], play = str(self.task_queue[response1["task_name"]]))
+            selected, initial_state = self.selectTask(player_name, response1["task_name"], play=str(self.task_queue[response1["task_name"]]))
 
             print(selected, '>', initial_state)
             initial_state = json.loads(initial_state)
@@ -317,22 +314,23 @@ class BackEndSystem(object):
                 response1["status"] = 0
                 response1["text"] = "该任务已经被其他人选中"
                 response1["sub_img"] = None
-
+        '''
         if response2 != {}:
             if response2["status"] == 1:
                 task_name = player.takeOffTask()
                 self.task_queue.pop(task_name)
 
                 rewards = response2["reward"]
-
-                player.getReward(rewards)
+                if rewards:
+                    player.getReward(rewards)
                 # self.task_queue.pop(task)
                 # self.task_queue.pop(task_id)
 
-        print('[debug]',response1, response2)
+        print('[debug]', response1, response2)
+
         return response1, response2
-    
-    
+
+    '''
     def selectTask(self, player_name:str, task_name:str, play = ""):
         """
         Args:
@@ -365,13 +363,41 @@ class BackEndSystem(object):
             player.takeOnTask(task_director, judge, task_name)
 
             return True, start
-        
+    '''
+    def selectTask(self, player_name: str, task_name: str):
+        """
+        Args:
+            player_name (str): _description_
+            task_name (str): _description_
 
-    def craft_items(self,
-                    player_name:str,
-                    mode:int,
-                    num:int,
-                    description:str):
+        Returns:
+        bool: if the user selected the task.
+        """
+
+        print(player_name, task_name)
+        task = self.task_queue[task_name]
+        play = str(task)
+
+        if task["occupied"]:
+            return False, ""
+        else:
+            task["occupied"] = True
+            task["player"] = player_name
+
+            judge_prompt = read_file("judge")
+            act_prompt = read_file("task_acting")
+
+            judge: LLMAPI = initialize_llm(judge_prompt)
+            task_director: LLMAPI = initialize_llm(act_prompt)
+            start: str = task_director.generateResponse(play)
+            print('start>', start)
+
+            player = self.player_dict[player_name]
+            player.takeOnTask(task_director, judge, task_name)
+
+            return True, start
+
+    def craft_items(self, player_name: str, mode: int, num: int, description: str):
         
         if description == "":
             return "Error"
@@ -379,7 +405,6 @@ class BackEndSystem(object):
         if mode == 0:
             #TODO add the weapon and the skills
             request = f"{player_name}想要制作{description}的装备，对此玩家愿意投入{num} 凤羽"
-
             response = self.equipment_generator.generateResponse(request)
 
             print(response)
@@ -388,16 +413,13 @@ class BackEndSystem(object):
             response = fixResponse(response, "description")
 
             equip = json.loads(response)
-
             player:Player = self.player_dict[player_name]
-
             player.bag.append(equip)
 
             return equip
         
         elif mode == 1:
             request = f"【请求之人】{player_name} 需要一个{description}的技能，对此我愿意投入{num}个龙眼。"
-
             response = self.skill_generator.generateResponse(request)
 
             print(response)
@@ -406,12 +428,10 @@ class BackEndSystem(object):
 
             response = fixResponse(response, "effect")
 
-            player:Player = self.player_dict[player_name]
-
+            player: Player = self.player_dict[player_name]
             player.skills.append(skill)
 
             return skill
-
 
     def getAllAvailableTasks(self, player_name):
         tasks = [task["task_name"] for task in self.task_queue.values() if task["occupied"] == False]
@@ -419,6 +439,7 @@ class BackEndSystem(object):
     
     def getPlayerInfo(self, player_name):
         player:Player = self.player_dict[player_name]
+        print(f"Welcome, {player_name}!")
         return player.attributes
     
     def getGameTime(self,player_name):
@@ -447,9 +468,3 @@ if __name__ == '__main__':
         response1, response2 = bs.getPlayerInput(player_name, user_input)
         print(response1)
         print(response2)
-
-
-
-
-
-
