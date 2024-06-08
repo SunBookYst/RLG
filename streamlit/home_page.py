@@ -9,10 +9,10 @@ import json
 # 初始化会话状态
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
+if 'waiting' not in st.session_state:
+    st.session_state['waiting'] = False
 if 'generating' not in st.session_state:
     st.session_state['generating'] = False
-if 'task_list' not in st.session_state:
-    st.session_state['task_list'] = []
 
 
 def login():
@@ -59,10 +59,13 @@ def show_login_page():
         login_button = st.button('Login')
 
         if login_button and username:
-            st.session_state['logged_in'] = True
+            st.session_state['waiting'] = True
             st.session_state['username'] = username
-            login()
             st.rerun()  # 重新运行应用以更新页面内容
+
+
+def show_waiting_page():
+    st.write("欢迎来到【苍穹】大陆！")
 
 
 # 渲染欢迎页面
@@ -72,17 +75,17 @@ def show_welcome_page():
     st.write('This is the next page.')
     # 添加对话框
     st.write("Chat with us:")
-    user_input = st.text_area("Enter your message here:")
-
-    if st.button("Send"):
-        if user_input:
-            chat_with_dm(user_input)
-        else:
-            st.write("Please enter a message.")
+    user_input = st.chat_input("Say something")
+    if user_input:
+        chat_with_dm(user_input)
+    else:
+        st.write("Please enter a message.")
 
     logout_button = st.button('Logout')
     if logout_button:
         st.session_state['logged_in'] = False
+        if 'user_name' in st.session_state:
+            st.session_state['username'] = None
         st.rerun()  # 重新运行应用以更新页面内容
 
 
@@ -90,7 +93,14 @@ def show_welcome_page():
 if st.session_state['logged_in']:
     show_welcome_page()
 else:
-    show_login_page()
+    if st.session_state['waiting']:
+        show_waiting_page()
+        login()
+        st.session_state['waiting'] = False
+        st.session_state['logged_in'] = True
+        st.rerun()
+    else:
+        show_login_page()
 
 
 

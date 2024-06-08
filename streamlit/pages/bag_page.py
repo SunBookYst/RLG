@@ -29,12 +29,16 @@ def get_skill_info():
         st.write("Error: Unable to select this task.")
 
 
-equipment = get_bag_info()
-skill = get_skill_info()
-if st.button('refresh'):
-    st.rerun()
+if not st.session_state['logged_in']:
+    st.write("尊敬的勇士，请先表明身份！")
+    st.page_link("home_page.py", label="Go to login")
+else:
+    equipment = get_bag_info()
+    skill = get_skill_info()
+    if st.button('refresh'):
+        st.rerun()
 
-st.write("装备栏")
-st.write(equipment)
-st.write("技能槽")
-st.write(skill)
+    st.write("装备栏")
+    st.write(equipment)
+    st.write("技能槽")
+    st.write(skill)
