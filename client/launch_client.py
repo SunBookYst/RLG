@@ -272,7 +272,7 @@ def set_menu_1(screen): #TODO补充名字发送函数
                         try:
                             role = input_text
                             func = "/legal"
-                            r = requests.get(url=url+func,data = {"mode":0,"content":role})
+                            r = requests.get(url=url+func,json = {"mode":0,"content":role})
                             r_json = json.loads(r.text)
                             if r_json["status"]!=True:
                                 input_text = "你的名字不合适"
@@ -371,7 +371,7 @@ def button_1_function():
         task_list = r['task_list']
     except:
         task_list = ["请求失败，请重试"]
-    task_list = ["帮助市民寻找丢失的小猫","击败盘踞在城镇边缘的强盗团伙","温泉缺水"]
+    # task_list = ["帮助市民寻找丢失的小猫","击败盘踞在城镇边缘的强盗团伙","温泉缺水"]
     for i in range(len(task_list)):
         task_list[i] = str(i)+"."+task_list[i]
     info_long_text = line_break.join(task_list)
@@ -380,7 +380,7 @@ def button_2_function():
     global info_long_text, info_start_line
     info_start_line = 0
     print("按钮2被点击了！")
-    func = "/attribute"
+    func = "/status"
     try:
         r = requests.get(url=url+func,json={'role':role})
         r = json.loads(r.text)
@@ -469,7 +469,7 @@ def button_7_function(num,text,mode): #提交合成资料
         text = r['text']
     except:
         text = "请求失败，请重试"
-    text = "冒出一阵金光，装备合成成功"
+    # text = "冒出一阵金光，装备合成成功"
     # if current_page==SHOW_MAIN_PAGE:
     info_long_text = text
     # else:
@@ -518,7 +518,13 @@ num_box = TextBox(1280, 680, 320, 40, font,0)
 
 info_text_surface = pygame.Surface((info_textbox_rect.width, info_textbox_rect.height))
 merge_text_surface = pygame.Surface((320, 140))
-
+try:
+    func = "/main"
+    r =requests.get(url=url+func,json={'role':role,'text':""})
+    r = json.loads(r.text)
+    system_text = r["text"]
+except:
+    system_text = "初始通信有误"
 clock = pygame.time.Clock()
 while running:
     events = pygame.event.get()
@@ -566,21 +572,21 @@ while running:
                             r = requests.get(url+"/main",json={'text':input_text,"role":role})
                             r = json.loads(r.text)
                             system_text = r['text']
-                            role = r["role"]
+                            t_role = r["role"]
                             status = r["status"]
                         except:
                             system_text = "请重试"
-                            role = "请求失败"
+                            t_role = "请求失败"
                             status = False
                         # r= {}
-                        # r['role'] = "system"
+                        # r['role'] = "systemt_"
                         # r['text'] = "我不听我不听我不听"*10
                         # system_text = r['text']
-                        dialogue_history.append(role+':'+system_text)
+                        dialogue_history.append(t_role+':'+system_text)
                         #NOTE 从主系统过渡到任务执行状态
                         if status:#TODO 设置触发转换到任务状态的关键词,或者改为其他触发方式，由服务端确认后修改
                             current_page = SHOW_VICE_PAGE
-                            vice_history.append(role+':'+system_text)
+                            vice_history.append(t_role+':'+system_text)
                             vice_alpha = 20
                             main_alpha = 20
                             random_item = random.choice([music_file_2,music_file_3])
@@ -588,6 +594,7 @@ while running:
                             changed = True
                             pygame.mixer.music.load(random_item)
                             pygame.mixer.music.play(-1)
+                            status = False
                             #TODO 同时为任务生成场景图，存放到用户的./image/文件夹下，同时在render_dialogue处指定被调用的图片
                     if current_page == SHOW_VICE_PAGE:
                         vice_history.append(role+":"+input_text)
@@ -595,11 +602,13 @@ while running:
                             r = requests.get(url+"/feedback",json={'text':input_text,"role":role})
                             r = json.loads(r.text)
                             # system_text = r['text']
-                            role = r["role"]
+                            if r["role"] == None:
+                                t_role = "系统"
+                            t_role = r["role"]
                             system_text = r["text"]
                             status = r["status"]
                         except:
-                            role="请求失败"
+                            t_role="请求失败"
                             system_text = "请重试"
                             status = False
                             # system_text = "请求失败，请重试"
@@ -608,10 +617,10 @@ while running:
                         # r['text'] = "我不听我不听我不听"*10
                         # system_text = r['text']
                         # system_text = "开始执行任务"*10
-                        vice_history.append(role+':'+system_text)
+                        vice_history.append(t_role+':'+system_text)
                         if status:#TODO 触发信息设置同上
                             current_page = SHOW_MAIN_PAGE
-                            dialogue_history.append(role+':'+system_text)
+                            dialogue_history.append(t_role+':'+system_text)
                             main_alpha = 20
                             vice_alpha = 20
                             vice_history = [] #NOTE 任务内对话信息任务结束后不保存
@@ -619,6 +628,7 @@ while running:
                             changed = True
                             pygame.mixer.music.load(music_file_1)
                             pygame.mixer.music.play(-1)
+                            status = False
                     input_text = ''
                     current_role = 0
             elif event.key == pygame.K_BACKSPACE:

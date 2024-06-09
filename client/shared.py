@@ -165,7 +165,7 @@ screen_width, screen_height = 1280, 720 #替换为获取
 # long_text = "这是一个示例文本。" * 200 #用于填充 信息 板块
 # long_text_merge = "这是一个示例"*10
 # dropdown = Dropdown(100, 50, 200, 40, font, "选择一个选项", ["选项1", "选项2", "选项3"])
-url = "xxx"#TODO 服务端url地址
+url = "http://10.46.47.169:5000"#TODO 服务端url地址
 role = '' #TODO 在初始界面确定角色名称，服务端检测，禁止重名
 role_set = ''
 scene = 0 #0 为主界面， 1为执行任务时的交互界面
@@ -203,7 +203,7 @@ info_w_num = info_textbox_rect.width//(info_line_height-2)
 info_lines = []
 pos = (0, 0) # 渲染info文字使用的变量
 
-merge_long_text = "这是一个示例"*10
+merge_long_text = ""
 merge_textbox_rect = pygame.Rect(1280, 520, 320, 120)
 merge_line_height = font.get_linesize()
 merge_start_line = 0
