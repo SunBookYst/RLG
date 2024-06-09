@@ -11,6 +11,8 @@ if 'task' not in st.session_state:
     st.session_state.task = ""
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
+if 'task_list' not in st.session_state:
+    st.session_state.task_list = []
 
 
 def check_tasks():
@@ -83,8 +85,11 @@ else:
         st.title('Tasks')
         st.write(f"{st.session_state['username']}, it's your turn!")
         check_tasks()
-        for task in st.session_state['task_list']:
-            st.button(task, on_click=wait_for_task_initialize, args=[task])
+        if len(st.session_state['task_list']) == 0:
+            st.write("正在寻找任务...")
+        else:
+            for task in st.session_state['task_list']:
+                st.button(task, on_click=wait_for_task_initialize, args=[task])
 
     # 玩家此时正在游玩某个任务，进入与任务系统的对话界面
     if st.session_state.condition == 1:
