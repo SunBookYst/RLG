@@ -1,23 +1,23 @@
 import sys
-sys.path.append('..')
-
 from datetime import datetime, timedelta
-from flask import jsonify
+import json
+import random
+from concurrent.futures import ThreadPoolExecutor
 
 from subsenario.utils import *
 from request import LLMAPI, StableDiffusion
-import json
+
 
 DEBUG = True
+sys.path.append('..')
 
 
-def fixResponse(origin_text:str, attr:str):
+def fixResponse(origin_text: str, attr: str):
     """
     处理LLM所返回内容中潜在的格式错误
     Args:
-        origin_text:
-        attr:
-
+        origin_text:大模型直接返回的文本
+        attr:需要修复的元素
     Returns:
     处理好的文本
     """
@@ -53,41 +53,37 @@ class Player(object):
     """
     A class to gather all the information of the player.
     """
-    def __init__(self, 
-                name    : str,
-                feature : str,
-                DM_model: LLMAPI): 
-        
-        self.name          :str    = name
-        self.feature       :str    = feature
-        self.attributes    :dict   = {
+
+    def __init__(self, name: str, feature: str, DM_model: LLMAPI):
+        self.name: str = name
+        self.feature: str = feature
+        self.attributes: dict = {
             "龙眼": 0,
             "凤羽": 0,
             "经验值": 0,
             "等级": 1
         }
-        # 凤羽/龙眼/level Exp
 
-        self.dm_model      :LLMAPI = DM_model
-        self.task_director :LLMAPI = None
-        self.task_judge    :LLMAPI = None
-        self.task_focus    :bool   = False
-        self.current_task  :str    = None
-        self.bag   :list = []
-        self.skills:list = []
+        self.dm_model: LLMAPI = DM_model
+        self.task_director: LLMAPI = None
+        self.task_judge: LLMAPI = None
+        self.task_focus: bool = False
+        self.current_task: str = None
+        self.bag: list = []
+        self.skills: list = []
 
     def takeOnTask(self, task_director, judge, task_name):
-        self.task_focus    = True
+        self.task_focus = True
         self.task_director = task_director
-        self.task_judge    = judge
-        self.current_task  = task_name
+        self.task_judge = judge
+        self.current_task = task_name
 
     def takeOffTask(self):
-        self.task_focus    = False
+        self.task_focus = False
         self.task_director = None
-        self.task_judge    = None
+        self.task_judge = None
         task_name = self.current_task
-        self.current_task  = None
+        self.current_task = None
         return task_name
 
     def makeAConversation(self, player_input: str):
@@ -143,7 +139,6 @@ class Player(object):
                 f.write(response)
             print('=' * 10)
             play = json.loads(response)
-            # play = json.loads(self.task_director.generateResponse(content))
 
             return judge, play
 
@@ -151,11 +146,13 @@ class Player(object):
         for k, v in rewards.items():
             self.attributes[k] += v
 
+    def consumeProperty(self, item, num):
+        self.attributes[item] -= num
 
 class BackEndSystem(object):
     """
     The backend system of the game, mainly maintain the critical information of the game.
-    
+
     Attributes:
     ---
         - task_generator (List[LLMAPI]) the list of the task generator.
@@ -165,7 +162,7 @@ class BackEndSystem(object):
         - _sub_model_dict (dict{str:str}) the sub models used.
 
         - _attribute3_ (type): _description_
-    
+
     Methods:
     ---
         _method1_ (type): _description_
@@ -184,24 +181,18 @@ class BackEndSystem(object):
         bg_prompt = read_file('txt2img_background')
         eq_prompt = read_file('equipment_craft')
         sk_prompt = read_file('skill_generate')
+        self.executor = ThreadPoolExecutor(max_workers=4)
 
-        self.player_dict:dict[str:Player] = {}
+        self.player_dict: dict[str:Player] = {}
 
-        self.task_generator      :LLMAPI          = initialize_llm(task_prompt)
-        self.bg_generator        :LLMAPI          = initialize_llm(bg_prompt)
-        self.sd                  :StableDiffusion = StableDiffusion()
-        self.equipment_generator:LLMAPI           = initialize_llm(eq_prompt)
-        self.skill_generator     :LLMAPI          = initialize_llm(sk_prompt)
+        self.task_generator: LLMAPI = initialize_llm(task_prompt)
+        self.bg_generator: LLMAPI = initialize_llm(bg_prompt)
+        self.sd: StableDiffusion = StableDiffusion()
+        self.equipment_generator: LLMAPI = initialize_llm(eq_prompt)
+        self.skill_generator: LLMAPI = initialize_llm(sk_prompt)
 
+        self.future_task_queue = self.executor.submit(self._init_task_queue, 3)
         self.task_queue = {}
-
-        task1 = self._task_generate("互动任务")
-        task2 = self._task_generate("助人任务")
-        task3 = self._task_generate("好汉任务")
-
-        self.task_queue[task1["task_name"]] = task1
-        self.task_queue[task2["task_name"]] = task2
-        self.task_queue[task3["task_name"]] = task3
 
         self.start_time = datetime.now()
 
@@ -219,8 +210,21 @@ class BackEndSystem(object):
         # self.current_system = 'Main'
 
         # self.is_playing = False
-        
+
         # self.total_played_time = 0
+
+    def _init_task_queue(self, num):
+        task_type = ["互动任务", "助人任务", "好汉任务", "豪杰任务", "英雄任务", "救世主任务"]
+        probabilities = [0.2, 0.2, 0.25, 0.15, 0.15, 0.05]
+        task_queue = {}
+
+        # 使用random.choices根据给定的概率选取项
+        for i in range(num):
+            chosen_item = random.choices(task_type, weights=probabilities, k=1)[0]
+            task = self._task_generate(chosen_item)
+            task_queue[task["task_name"]] = task
+
+        return task_queue
 
     def _task_generate(self, task_type, description="任意"):
         """
@@ -268,31 +272,31 @@ class BackEndSystem(object):
         """
         Add a new instance of Player in the DM.
         The name and the feature is first checked.
-        
+
         Args:
             name (str): The player name.
             feature (str): The player's description.
         """
 
         dm_prompt = read_file("DM")
-        dm_model:LLMAPI = initialize_llm(dm_prompt)
+        dm_model: LLMAPI = initialize_llm(dm_prompt)
         new_player = Player(name, feature, dm_model)
 
         self.player_dict[name] = new_player
 
-    def getPlayerInput(self, player_name:str, player_input:str):
+    def getPlayerInput(self, player_name: str, player_input: str):
         """
         Get the player input and return the response from the DM.
-        
+
         Args:
             player_name (str): The name of the player.
             player_input (str): The input of the player.
-        
+
         Returns:
             dict{}, dict{}
         """
         print(self.player_dict.keys())
-        player:Player = self.player_dict[player_name]
+        player: Player = self.player_dict[player_name]
         response1, response2 = player.makeAConversation(player_input)
 
         # print(player.task_focus, response1["status"])
@@ -364,6 +368,7 @@ class BackEndSystem(object):
 
             return True, start
     '''
+
     def selectTask(self, player_name: str, task_name: str):
         """
         Args:
@@ -398,53 +403,65 @@ class BackEndSystem(object):
             return True, start
 
     def craft_items(self, player_name: str, mode: int, num: int, description: str):
-        
+        attribute = self.getPlayerInfo(player_name)
+        player: Player = self.player_dict[player_name]
+
         if description == "":
             return "Error"
 
         if mode == 0:
-            #TODO add the weapon and the skills
+            if attribute['凤羽'] < num:
+                return "您的凤羽储量不足，请不要为难我，勇士！"
             request = f"{player_name}想要制作{description}的装备，对此玩家愿意投入{num} 凤羽"
             response = self.equipment_generator.generateResponse(request)
 
-            print(response)
+            if DEBUG:
+                print(response)
 
             response = fixResponse(response, "outlook")
             response = fixResponse(response, "description")
 
             equip = json.loads(response)
-            player:Player = self.player_dict[player_name]
+
             player.bag.append(equip)
+            player.consumeProperty('凤羽', num)
 
             return equip
-        
+
         elif mode == 1:
+            if attribute['龙眼'] < num:
+                return "您的龙眼储量不足，请不要为难我，勇士！"
             request = f"【请求之人】{player_name} 需要一个{description}的技能，对此我愿意投入{num}个龙眼。"
             response = self.skill_generator.generateResponse(request)
 
-            print(response)
+            if DEBUG:
+                print(response)
 
             skill = json.loads(response)
 
             response = fixResponse(response, "effect")
 
-            player: Player = self.player_dict[player_name]
             player.skills.append(skill)
+            player.consumeProperty('龙眼', num)
 
             return skill
 
     def getAllAvailableTasks(self, player_name):
+        if self.future_task_queue.done():
+            self.task_queue = self.future_task_queue.result()
+
         tasks = [task["task_name"] for task in self.task_queue.values() if task["occupied"] == False]
+
         return tasks
-    
+
     def getPlayerInfo(self, player_name):
-        player:Player = self.player_dict[player_name]
+        player: Player = self.player_dict[player_name]
         print(f"Welcome, {player_name}!")
         return player.attributes
-    
-    def getGameTime(self,player_name):
+
+    def getGameTime(self, player_name):
         return "00:00:00"
-    
+
 
 if __name__ == '__main__':
 
