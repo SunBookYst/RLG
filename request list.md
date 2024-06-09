@@ -14,11 +14,10 @@ Request List
 <!-- - 接受某任务，发送：{'text':str, 'role':str}；路由：/accept；期望接收：{'status':bool,''} -->
 ### 暂时不要紧的
 - 当前时间，发送：{'role':str}；路由：/time；期望接收：{'time':str} 返回该角色对应的时间
-<<<<<<< HEAD
+
 - 检测合法性，发送：{'mode':0或1，'content':str}， 模式0检测姓名，模式1检测人物设定；路由：/legal；期望接收 {'status':bool}
 <!-- - 可以改为init接口 -->
-=======
 - 检测合法性，发送：{'mode':0 或 1，'content':str}， 模式0检测姓名，模式1检测人物设定；路由：/legal；期望接收 {'status':bool}
->>>>>>> 1e04c392bafadbb974e3076b3ced9d6ac4f80c09
+
 - 其他特殊事件（暂定），发送{'info':str,'role':str,'text':str}，描述任务，并附上玩家输入的text；路由：/others；期望接收：{’role':str,'text':str,'other':str}
 - 其它系统，待定

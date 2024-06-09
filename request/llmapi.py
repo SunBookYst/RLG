@@ -97,7 +97,7 @@ class LLMAPI(object):
                         "content": prompt
                     }
                 ],
-                "use_search": True,
+                "use_search": False,
                 "stream": stream
             }
 
@@ -109,9 +109,12 @@ class LLMAPI(object):
                 result, kimi_id = self._handle_sse_stream(response)
                 if self.kimi_id == 'null':
                     self.kimi_id = kimi_id
+                self.chat_history.append({'role': 'assistant', 'content': result})
                 return result
+            
             else:
                 response = response.json()
+                self.chat_history.append({'role': 'assistant', 'content': response["choices"][0]["message"]["content"]})
                 if self.kimi_id == 'null':
                     self.kimi_id = response['id']
                 if return_json:
@@ -170,8 +173,8 @@ class LLMAPI(object):
 
 def initialize_llm(prompt, type="KIMI-server"):
     print("Initializing...")
-    model = LLMAPI(type)
-    intro = model.generateResponse(prompt, stream=True)
+    model = LLMAPI(model_name = type)
+    intro = model.generateResponse(prompt, stream = True)
     print('\n')
     return model
 
