@@ -14,7 +14,7 @@ game_routes = Blueprint('game_routes', __name__)
 @game_routes.route('/register', methods=['GET'])
 def register():
     data = request.json
-    bs.registerPlayer(name=data["name"], feature=data["feature"])
+    bs.register_player(name=data["name"], email=data["email"], password=data["password"])
 
     # 返回一个 JSON 响应
     return jsonify({
@@ -23,26 +23,17 @@ def register():
     })
 
 
+@game_routes.route('/login', methods=['GET'])
+def login():
+    # 返回ture代表登陆成功，返回false代表邮箱或密码不正确
+    data = request.json
+    return bs.login_player(email=data["email"], password=data["password"])
+
+
 @game_routes.route('/main', methods=['GET'])
 def interact_with_dm():
-    """
-    data is 
-    {
-        'text':str,
-        'role':str
-    }
-
-    returns
-    {
-        'text':str,
-        'role':str,
-        'status':bool,
-    }
-    """
     data = request.json
-    response, __ = bs.getPlayerInput(player_name = data["role"], player_input = data["text"])
-
-    # ?What is this thing...
+    response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=0)
 
     return response
 
@@ -50,10 +41,7 @@ def interact_with_dm():
 @game_routes.route('/select', methods=['GET'])
 def select_task():
     data = request.json
-
-    judge_response, task_response = bs.selectTask(player_name=data["role"], task_name=data["task_name"])
-
-    print('[server]', task_response)
+    judge_response, task_response = bs.select_task(player_name=data["role"], task_name=data["task_name"])
 
     return task_response
 
@@ -65,9 +53,9 @@ def interact_with_task():
     # TODO judge and task is not accordant.
     # TODO bs do not make the rewards...
 
-    judge_response, task_response = bs.getPlayerInput(player_name=data["role"], player_input=data["text"])
+    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1)
 
-    print('[server]',task_response)
+    print('[server]', task_response)
 
     return task_response
 
@@ -75,14 +63,14 @@ def interact_with_task():
 @game_routes.route('/task_info', methods=['GET'])
 def get_all_tasks():
     data = request.json
-    return {'task_list': bs.getAllAvailableTasks(data["role"])}
+    return {'task_list': bs.get_all_available_tasks(data["role"])}
 
 
 @game_routes.route('/status', methods=['GET'])
 def get_player_info():
     data = request.json
 
-    response = bs.getPlayerInfo(data["role"])
+    response = bs.get_player_info(data["role"])
 
     return {'attribute': response}
 
@@ -124,6 +112,15 @@ def get_an_item():
     response = bs.craft_items(data["role"], data["mode"], data["num"], data["des"])
 
     return {'text': response}
+
+
+@game_routes.route('/custom', methods=['GET'])
+def customize_a_task():
+    data = request.json
+    response = bs.task_customize(data["role"], data["mode"], data["num"], data["des"])
+
+    return {'text': response}
+
 
 # TODO: save and load.
 # @game_routes.route('/save', methods=['POST'])
