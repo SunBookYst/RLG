@@ -23,5 +23,5 @@ Request List
 - 其它系统，待定
 
 
-- 登录 发送{'email':str,'password':str},前者为注册用的邮箱地址，后者为加密后的密码 ； 期望接收{'status_code':int,'username':str},username为注册时的用户名，status_code 200表示成功，其他还有如密码不正确，未注册等错误
-- 注册 发送{'email':str,'username':str,'password':str},email和password同上，需要注意username需要检测合法性； 期望接收 {'status_code':int},200为注册成功，其他code自定义，例如重名，邮箱已被使用，名称不合法等等；密码加密操作在前端完成
+- 登录 发送{'email':str,'password':str},前者为注册用的邮箱地址，后者为加密后的密码 ； 期望接收{'status_code':int,'username':str},username为注册时的用户名，status_code 200表示成功，其他还有如密码不正确，未注册等错误； 路由 /login
+- 注册 发送{'email':str,'username':str,'password':str},email和password同上，需要注意username需要检测合法性； 期望接收 {'status_code':int},200为注册成功，其他code自定义，例如重名，邮箱已被使用，名称不合法等等；密码加密操作在前端完成； 路由/signup
