@@ -31,24 +31,6 @@ def login():
         'feature': ""
     })
 
-# def set_background(image_path, opacity):
-#     with open(image_path, "rb") as image_file:
-#         encoded_string = base64.b64encode(image_file.read()).decode()
-
-#     st.markdown(
-#         f"""
-#         <style>
-#         .stApp {{
-#             background: linear-gradient(rgba(255, 255, 255, {opacity}), rgba(255, 255, 255, {opacity})), 
-#                         url(data:image/png;base64,{encoded_string});
-#             background-size: cover;
-#             background-position: center;
-#         }}
-#         </style>
-#         """,
-#         unsafe_allow_html=True
-#     )
-
 
 def chat_with_dm(user_input):
     """
@@ -84,14 +66,27 @@ def show_login_page():
     with col2:
         st.title('RLG GAME')
         username = st.text_input('Username')
-        password = st.text_input("Password")
+        password = st.text_input("Password", type="password")
         col2_1,col2_2 = st.columns([1, 1])
         with col2_1:
             login_button = st.button('Log in')
         with col2_2:
             signup_button = st.button('Sign up')
 
-        if login_button and username: #TODO 发送请求判断用户名与密码对应
+        if login_button and username and password :
+            # func = '/login'
+            # r = requests.get(url = url+func, josn = {'email':email,'password':md5_encrypt(password)})
+            # r = json.loads(r.text)
+            # try:
+            #     if r['status_code']==200:
+            #         st.session_state['waiting'] = True
+            #         st.session_state['username'] = username
+            #         st.rerun()
+            #     else:
+            #         st.write(f"登录出错，请检查，错误码是{r['status_code']}")
+            # except:
+            #     st.write("与服务器的连接出错")
+            # TODO 发送请求判断用户名与密码对应，待完善后台逻辑
             st.session_state['waiting'] = True
             st.session_state['username'] = username
             st.rerun()  # 重新运行应用以更新页面内容
@@ -105,22 +100,36 @@ def show_signup_page():
         st.title('RLG GAME')
         email = st.text_input("Email")
         username = st.text_input('Username')
-        password = st.text_input("Password")
+        password = st.text_input("Password", type="password")
         col_password, col_exclamation = st.columns([4, 1])
         with col_password:
-            password2 = st.text_input("Confirm Password")
+            password2 = st.text_input("Confirm Password", type="password")
         with col_exclamation:
             if password != password2:
                 st.write("Pls Check!")
         signup_button = st.button('Sign up and Log in')
 
 
-        if signup_button and username and password and email and password==password2: #TODO 发送请求判断用户名与密码对应等
+        if signup_button and username and password and email and password==password2:
+            #TODO 发送请求判断判断是否可以注册，否则xxx，待完善后台逻辑
+            # try:
+            #     func = '/signup'
+            #     r = requests.get(url = url+func, josn = {'email':email,'username':username,'password':md5_encrypt(password)})
+            #     r = json.loads(r.text)
+            #     if r['status_code']==200:
+            #         st.session_state['waiting'] = True
+            #         st.session_state['username'] = username
+            #         st.session_state['sign_up'] = False
+            #         st.rerun()
+            #     else:
+            #         st.write(f"注册出错，请检查，错误码是{r['status_code']}")
+            # except:
+            #     st.write("与服务器的连接出错")
+
             st.session_state['waiting'] = True
             st.session_state['username'] = username
             st.session_state['sign_up'] = False
-            st.rerun()  # 重新运行应用以更新页面内容
-
+            st.rerun()
 
 def show_waiting_page():
     st.title('欢迎来到苍穹大陆')

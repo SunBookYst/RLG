@@ -3,8 +3,25 @@ import base64
 import re
 
 import streamlit as st
+import hashlib
 
+def md5_encrypt(password):
+    # 创建一个 MD5 hash 对象
+    md5_hash = hashlib.md5()
+    
+    # 更新 hash 对象，传入需要加密的密码（需要编码为字节）
+    md5_hash.update(password.encode('utf-8'))
+    
+    # 获取加密后的十六进制字符串
+    encrypted_password = md5_hash.hexdigest()
+    
+    return encrypted_password
 
+# 示例使用
+password = "your_password"
+encrypted_password = md5_encrypt(password)
+print(f"原始密码: {password}")
+print(f"MD5 加密后: {encrypted_password}")
 
 def set_background(image_path, opacity):
     with open(image_path, "rb") as image_file:
