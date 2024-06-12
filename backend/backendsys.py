@@ -1,6 +1,5 @@
 import sys
-from datetime import datetime, timedelta
-import json
+from datetime import datetime
 import random
 from concurrent.futures import ThreadPoolExecutor
 
@@ -54,14 +53,16 @@ class Player(object):
     A class to gather all the information of the player.
     """
 
-    def __init__(self, name: str, feature: str, DM_model: LLMAPI):
+    def __init__(self, name: str, email: str, password: str, DM_model: LLMAPI):
         self.name: str = name
-        self.feature: str = feature
+        self.email: str = email
+        self.password: str = password
+
+        self.feature: str = "【苍穹】大陆上的游戏角色，目前是一个健全的人"
         self.attributes: dict = {
             "龙眼": 0,
             "凤羽": 0,
             "经验值": 0,
-            "等级": 1
         }
 
         self.dm_model: LLMAPI = DM_model
@@ -71,6 +72,7 @@ class Player(object):
         self.current_task: str = None
         self.bag: list = []
         self.skills: list = []
+        self.custom_tasks: list = []
 
     def takeOnTask(self, task_director, judge, task_name):
         self.task_focus = True
@@ -86,7 +88,7 @@ class Player(object):
         self.current_task = None
         return task_name
 
-    def makeAConversation(self, player_input: str):
+    def talk_to_dm(self, player_input: str):
         """
         based on the input to generate a response.
 
@@ -97,50 +99,55 @@ class Player(object):
             dict{}: the response from DM/judge
             dict{}/empty dict: The response from the task generator if the user is on task.
         """
+        if DEBUG:
+            print("conversation with DM")
 
-        if not self.task_focus:
-            if DEBUG:
-                print("conversation with DM")
+        response = self.dm_model.generateResponse(f'【玩家】{player_input}')
+        print(response)
+        response = json.loads(response)
 
-            response = self.dm_model.generateResponse(f'【玩家】{player_input}')
-            print(response)
-            response = json.loads(response)
-            return response, {}
+        return response
 
-        else:
-            if DEBUG:
-                print("conversation with task")
-            play_infos = {}
-            system_words = self.task_director.getAllConversation()[-1]["content"]
-            play_infos["system"] = system_words
-            play_infos["player"] = player_input
-            play_infos["player_status"] = self.attributes | {"character": self.feature}
+    def talk_to_director(self, player_input: str):
+        # 跟任务演绎系统交谈
+        if DEBUG:
+            print("conversation with task")
 
-            content = json.dumps(play_infos)
+        # 获取系统最新发言与玩家发言，进入裁判系统判断后演绎新的一幕
+        play_infos = {}
+        system_words = self.task_director.getAllConversation()[-1]["content"]
+        play_infos["system"] = system_words
+        play_infos["player"] = player_input
+        play_infos["player_status"] = self.attributes | {"character": self.feature}
+        content = json.dumps(play_infos, ensure_ascii=False)
 
-            response = self.task_judge.generateResponse(content)
+        response = self.task_judge.generateResponse(content)
+        if DEBUG:
             print('[judge]\n', response)
-            judge = json.loads(response)
             print('=' * 10)
 
-            task_play = {}
-            task_play["player"] = player_input
-            task_play["status"] = judge["judge"]
-            task_play["reason"] = judge["reason"]
+        judge = json.loads(response)
 
-            content = json.dumps(task_play, ensure_ascii=False)
+        task_play = {}
+        task_play["player"] = player_input
+        task_play["judge"] = judge["judge"]
+        task_play["reason"] = judge["reason"]
+
+        content = json.dumps(task_play, ensure_ascii=False)
+
+        if DEBUG:
             print(content)
 
-            response = self.task_director.generateResponse(content)
+        response = self.task_director.generateResponse(content)
+        response = fixResponse(response, "text")
 
-            response = fixResponse(response, "text")
-            print('[task]\n', response)
-            with open("./debug.txt", "w", encoding='utf-8') as f:
-                f.write(response)
-            print('=' * 10)
-            play = json.loads(response)
+        print('[task]\n', response)
+        with open("./debug.txt", "w", encoding='utf-8') as f:
+            f.write(response)
+        print('=' * 10)
+        play = json.loads(response)
 
-            return judge, play
+        return judge, play
 
     def getReward(self, rewards):
         for k, v in rewards.items():
@@ -148,6 +155,7 @@ class Player(object):
 
     def consumeProperty(self, item, num):
         self.attributes[item] -= num
+
 
 class BackEndSystem(object):
     """
@@ -172,7 +180,6 @@ class BackEndSystem(object):
 
     def __init__(self, one_day_length_minutes=40):
         """
-
         Args:
             one_day_length_minutes (int, optional): How long a day in the game in minutes. Defaults to 40.
         """
@@ -181,41 +188,28 @@ class BackEndSystem(object):
         bg_prompt = read_file('txt2img_background')
         eq_prompt = read_file('equipment_craft')
         sk_prompt = read_file('skill_generate')
+        custom_prompt = read_file('task_custom')
+
         self.executor = ThreadPoolExecutor(max_workers=4)
 
         self.player_dict: dict[str:Player] = {}
 
         self.task_generator: LLMAPI = initialize_llm(task_prompt)
         self.bg_generator: LLMAPI = initialize_llm(bg_prompt)
-        self.sd: StableDiffusion = StableDiffusion()
         self.equipment_generator: LLMAPI = initialize_llm(eq_prompt)
         self.skill_generator: LLMAPI = initialize_llm(sk_prompt)
+        self.task_custom: LLMAPI = initialize_llm(custom_prompt)
+
+        self.sd: StableDiffusion = StableDiffusion()
 
         self.future_task_queue = self.executor.submit(self._init_task_queue, 3)
         self.task_queue = {}
 
         self.start_time = datetime.now()
 
-        # self.task_generator=None
-        # self.bg_generator=None
-        # self.sd=None
-
-        # self._quest_list= {}
-        # self._sub_model_dict={}
-
-        # self._pl_data={}
-
-        # self.time_set = one_day_length_minutes
-
-        # self.current_system = 'Main'
-
-        # self.is_playing = False
-
-        # self.total_played_time = 0
-
     def _init_task_queue(self, num):
         task_type = ["互动任务", "助人任务", "好汉任务", "豪杰任务", "英雄任务", "救世主任务"]
-        probabilities = [0.2, 0.2, 0.25, 0.15, 0.15, 0.05]
+        probabilities = [0.20, 0.20, 0.25, 0.20, 0.15, 0.00]
         task_queue = {}
 
         # 使用random.choices根据给定的概率选取项
@@ -253,38 +247,36 @@ class BackEndSystem(object):
         task["player"] = None
         return task
 
-    # Some annoying things from log in.
-    def checkNameValid(self, name):
-        player_name_lists = self.player_dict.keys()
+    def task_customize(self, player, description="任意"):
+        need = f"【玩家】帮我生成一个任务， 要求是{description}"
+        task = self.task_custom.generateResponse(need, stream=True)
+        task = json.loads(task)
+        task["player"] = player
+        return task
 
-        valid = name in player_name_lists
-
-        if valid == False:
-            self.registerPlayer(name, "")
-            return True
-        else:
-            return False
-
-    def checkFeatureValid(self, feature):
-        return True
-
-    def registerPlayer(self, name, feature):
+    def register_player(self, name, email, password):
         """
         Add a new instance of Player in the DM.
-        The name and the feature is first checked.
+        The name and the feature are first checked.
 
         Args:
             name (str): The player name.
             feature (str): The player's description.
         """
-
         dm_prompt = read_file("DM")
         dm_model: LLMAPI = initialize_llm(dm_prompt)
-        new_player = Player(name, feature, dm_model)
+        new_player = Player(name, email, password, dm_model)
 
         self.player_dict[name] = new_player
 
-    def getPlayerInput(self, player_name: str, player_input: str):
+    def login_player(self, email, password):
+        player: Player = self.player_dict[email]
+        if password != player.password:
+            return False
+        else:
+            return True
+
+    def get_player_input(self, player_name: str, player_input: str, mode: int):
         """
         Get the player input and return the response from the DM.
 
@@ -297,79 +289,30 @@ class BackEndSystem(object):
         """
         print(self.player_dict.keys())
         player: Player = self.player_dict[player_name]
-        response1, response2 = player.makeAConversation(player_input)
 
-        # print(player.task_focus, response1["status"])
-        # print(player.task_focus == False , response1["status"] == 1)
-        '''
-        if player.task_focus == False and response1["status"] == 1:
-            print("Changing scene.")
-            selected, initial_state = self.selectTask(player_name, response1["task_name"], play=str(self.task_queue[response1["task_name"]]))
+        # 与dm交流
+        if mode == 0:
+            dm_answer = player.talk_to_dm(player_input)
+            print('[debug]dm:', dm_answer)
+            return dm_answer
 
-            print(selected, '>', initial_state)
-            initial_state = json.loads(initial_state)
-
-            if selected:
-                task = self.task_queue[response1["task_name"]]
-                response1["status"] = 1
-                response1["text"] = initial_state["text"]
-                response1["sub_img"] = None
-            else:
-                response1["status"] = 0
-                response1["text"] = "该任务已经被其他人选中"
-                response1["sub_img"] = None
-        '''
-        if response2 != {}:
-            if response2["status"] == 1:
+        # 与任务演绎系统交流
+        elif mode == 1:
+            judge, play = player.talk_to_director(player_input)
+            if play["status"] == 1:
                 task_name = player.takeOffTask()
                 self.task_queue.pop(task_name)
 
-                rewards = response2["reward"]
+                rewards = play["reward"]
                 if rewards:
                     player.getReward(rewards)
                 # self.task_queue.pop(task)
                 # self.task_queue.pop(task_id)
 
-        print('[debug]', response1, response2)
+            print('[debug]play:', judge, play)
+            return play
 
-        return response1, response2
-
-    '''
-    def selectTask(self, player_name:str, task_name:str, play = ""):
-        """
-        Args:
-            player_name (str): _description_
-            task_name (str): _description_
-
-        Returns:
-        bool: if the user selected the task.
-        """
-
-        print(player_name, task_name)
-
-        task = self.task_queue[task_name]
-
-        if task["occupied"]:
-            return False, ""
-        else:
-            task["occupied"] = True
-            task["player"] = player_name
-
-            judge_prompt = read_file("judge")
-            act_prompt = read_file("task_acting")
-
-            judge        :LLMAPI = initialize_llm(judge_prompt)
-            task_director:LLMAPI = initialize_llm(act_prompt)
-            start        :str    = task_director.generateResponse(play)
-            print('start>',start)
-
-            player = self.player_dict[player_name]
-            player.takeOnTask(task_director, judge, task_name)
-
-            return True, start
-    '''
-
-    def selectTask(self, player_name: str, task_name: str):
+    def select_task(self, player_name: str, task_name: str):
         """
         Args:
             player_name (str): _description_
@@ -403,7 +346,7 @@ class BackEndSystem(object):
             return True, start
 
     def craft_items(self, player_name: str, mode: int, num: int, description: str):
-        attribute = self.getPlayerInfo(player_name)
+        attribute = self.get_player_info(player_name)
         player: Player = self.player_dict[player_name]
 
         if description == "":
@@ -446,7 +389,7 @@ class BackEndSystem(object):
 
             return skill
 
-    def getAllAvailableTasks(self, player_name):
+    def get_all_available_tasks(self, player_name):
         if self.future_task_queue.done():
             self.task_queue = self.future_task_queue.result()
 
@@ -454,9 +397,9 @@ class BackEndSystem(object):
 
         return tasks
 
-    def getPlayerInfo(self, player_name):
-        player: Player = self.player_dict[player_name]
-        print(f"Welcome, {player_name}!")
+    def get_player_info(self, name):
+        player: Player = self.player_dict[name]
+        print(f"Welcome, {player.name}!")
         return player.attributes
 
     def getGameTime(self, player_name):
