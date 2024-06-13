@@ -26,7 +26,7 @@ def set_background(image_path, opacity):
         f"""
         <style>
         .stApp {{
-            background: linear-gradient(rgba(255, 255, 255, {opacity}), rgba(255, 255, 255, {opacity})), 
+            background: linear-gradient(rgba(255, 255, 255, {opacity}), rgba(255, 255, 255, {opacity})),
                         url(data:image/png;base64,{encoded_string});
             background-size: cover;
             background-position: center;
@@ -35,6 +35,20 @@ def set_background(image_path, opacity):
         """,
         unsafe_allow_html=True
     )
+
+def disable_sidebar():
+    '''
+    在等待系统交互的时候禁用侧边切换，以避免发生一些不可知的错误
+    '''
+    st.sidebar.markdown("<style>div[role='tablist'] {pointer-events: none;}</style>", unsafe_allow_html=True)
+
+
+def enable_sidebar():
+    '''
+    系统交互结束后的时候重新启用侧边切换
+    '''
+    st.sidebar.markdown("<style>div[role='tablist'] {pointer-events: auto;}</style>", unsafe_allow_html=True)
+
 
 def parse_message(message):
     """

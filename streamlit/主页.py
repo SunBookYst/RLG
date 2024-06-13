@@ -65,7 +65,7 @@ def show_login_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title('RLG GAME')
-        email = st.text_input('email')
+        email = st.text_input('Email')
         password = st.text_input("Password", type="password")
         col2_1,col2_2 = st.columns([1, 1])
         with col2_1:
@@ -135,22 +135,6 @@ def show_signup_page():
 def show_waiting_page():
     st.title('欢迎来到苍穹大陆')
 
-def parse_message(message):
-    """
-    解析消息字符串，提取 role 和 text
-    Args:
-        message: 消息字符串，形如 "role: text"
-
-    Returns:
-        role: 角色
-        text: 消息内容
-    """
-    match = re.match(r"([^:]+):\s*(.*)", message)
-    if match:
-        return match.group(1), match.group(2)
-    else:
-        return "系统", message
-
 
 # 渲染欢迎页面
 def show_welcome_page():
@@ -162,7 +146,9 @@ def show_welcome_page():
     st.write(f'你好,{st.session_state["username"]}!')
     user_input = st.chat_input("说点什么")
     if user_input:
+        disable_sidebar()
         chat_with_dm(user_input)
+        enable_sidebar()
     for message in st.session_state['chat_history']:
         # st.write(message)
         role,text = parse_message(message)

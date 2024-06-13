@@ -65,17 +65,13 @@ def play_a_task(user_input):
         role = data["role"]
         if role==None:
             role = "系统"
-        user_message = f"{st.session_state['username']}: {user_input}"
-        dm_message = f'{role}: {data["text"]}'
         if 'reward' not in data:
-            st.session_state['task_chat_history'].append(user_message)
-            st.session_state['task_chat_history'].append(dm_message)
+            st.session_state['task_chat_history'].append((st.session_state['username'],user_input))
+            st.session_state['task_chat_history'].append((role,data["text"]))
             return data['text'], True
         else:
-            st.session_state['task_chat_history'].append(user_message)
-            st.session_state['task_chat_history'].append(dm_message)
-            st.session_state['task_chat_history'].append("恭喜你获得了：")
-            st.session_state['task_chat_history'].append(data['reward'])
+            st.session_state['task_chat_history'].append((None,"恭喜你获得了："))
+            st.session_state['task_chat_history'].append((None,str(data['reward'])))
             return data['text'], False
     else:
         st.write("Error: Unable to communicate with the server.")
@@ -110,37 +106,46 @@ else:
         opacity = 0.5  # 调节透明度，范围从 0 到 1
         set_background(image_path, opacity)
         for message in st.session_state['task_chat_history']:
-            # st.write(message)
-            role,text = parse_message(message)
-            if role == st.session_state['username']:
-                avatar_url = ST_PATH+"/image/me.png"  # 用户头像路径
+            role,text = message
+            if role!=None:
+                if role == st.session_state['username']:
+                    avatar_url = ST_PATH+"/image/me.png"  # 用户头像路径
+                else:
+                    avatar_url = ST_PATH+f"/image/{role}.png"  # DM头像路径
+                try:
+                    with open(avatar_url, "rb") as avatar_file:
+                        avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+                except:
+                    print(f"{avatar_url}不存在！切换为系统头像")
+                    with open(ST_PATH+f"/image/系统.png" , "rb") as avatar_file:
+                        avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+                # 将头像和消息组合在一个 HTML 块中
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <img src="data:image/png;base64,{avatar_base64}"
+                            style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
+                        <div><strong>{role}:</strong> {text}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
             else:
-                avatar_url = ST_PATH+f"/image/{role}.png"  # DM头像路径
-            try:
-                with open(avatar_url, "rb") as avatar_file:
-                    avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-            except:
-                print(f"{avatar_url}不存在！切换为系统头像")
-                with open(ST_PATH+f"/image/系统.png" , "rb") as avatar_file:
-                    avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-            # 将头像和消息组合在一个 HTML 块中
-            st.markdown(
-                f"""
-                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                    <img src="data:image/png;base64,{avatar_base64}"
-                        style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
-                    <div><strong>{role}:</strong> {text}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    f"""
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div>{text}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
         user_input = st.chat_input("说点什么")
+        disable_sidebar()
         if user_input:
             # st.session_state.condition =
             st.session_state.user_input = user_input
             if st.session_state.focus_on_task:
                 st.session_state.play, st.session_state.focus_on_task = play_a_task(st.session_state.user_input)
-                # st.session_state['task_chat_history'].append(st.session_state.play)
                 if st.session_state.focus_on_task:
                     st.session_state.condition = 1
                     st.rerun()
@@ -151,6 +156,7 @@ else:
                         st.write("感谢您的努力，下次再会！")
                         time.sleep(1.5)
                         st.rerun()
+        enable_sidebar()
 
     # 玩家选择了某个任务，开始初始化
     elif st.session_state.condition == 2:
@@ -164,7 +170,7 @@ else:
         st.session_state.focus_on_task = True
         st.session_state.play = play
         st.session_state.condition = 1
-        st.session_state['task_chat_history'].append(st.session_state['play'])
+        st.session_state['task_chat_history'].append(("系统",st.session_state['play']))
         st.rerun()
 
 
