@@ -1,33 +1,49 @@
 from flask import Blueprint, request, jsonify
-from backendsys import BackEndSystem
+from backendsys import BackEndSystem, MultiThreadManager
 
 
 # 实例化 backend
 backend_instance = None
 
 bs = BackEndSystem()
+monitor = MultiThreadManager(bs)
 
 # 注册一个路由，马上启动！
 game_routes = Blueprint('game_routes', __name__)
 
 
-@game_routes.route('/register', methods=['GET'])
+@game_routes.route('/signup', methods=['GET'])
 def register():
     data = request.json
-    bs.register_player(name=data["name"], email=data["email"], password=data["password"])
+    res = bs.register_player(name=data["username"], email=data["email"], password=data["password"])
 
-    # 返回一个 JSON 响应
-    return jsonify({
-        'status': True,
-        'message': 'Player registered successfully'
-    })
+    if res:
+        # 返回一个 JSON 响应
+        return jsonify({
+            'status_code': 200,
+        })
+    else:
+        # 返回一个 JSON 响应
+        return jsonify({
+            'status_code': 404,
+        })
 
 
 @game_routes.route('/login', methods=['GET'])
 def login():
-    # 返回ture代表登陆成功，返回false代表邮箱或密码不正确
+    # 返回200代表登陆成功，返回404代表邮箱或密码不正确
     data = request.json
-    return bs.login_player(email=data["email"], password=data["password"])
+    user_name = bs.login_player(email=data["email"], password=data["password"])
+    if user_name:
+        return jsonify({
+            'status_code': 200,
+            'username': user_name
+        })
+    else:
+        return jsonify({
+            'status_code': 404,
+            'username': None
+        })
 
 
 @game_routes.route('/main', methods=['GET'])

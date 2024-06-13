@@ -1,7 +1,9 @@
 import sys
 from datetime import datetime
 import random
-from concurrent.futures import ThreadPoolExecutor
+import time
+import threading
+import pickle
 
 from subsenario.utils import *
 from request import LLMAPI, StableDiffusion
@@ -64,12 +66,16 @@ class Player(object):
             "凤羽": 0,
             "经验值": 0,
         }
-
+        # 玩家的DM
         self.dm_model: LLMAPI = DM_model
+
+        # 玩家的任务系统
         self.task_director: LLMAPI = None
         self.task_judge: LLMAPI = None
         self.task_focus: bool = False
         self.current_task: str = None
+
+        # 玩家的物资
         self.bag: list = []
         self.skills: list = []
         self.custom_tasks: list = []
@@ -122,9 +128,6 @@ class Player(object):
         content = json.dumps(play_infos, ensure_ascii=False)
 
         response = self.task_judge.generateResponse(content)
-        if DEBUG:
-            print('[judge]\n', response)
-            print('=' * 10)
 
         judge = json.loads(response)
 
@@ -135,16 +138,18 @@ class Player(object):
 
         content = json.dumps(task_play, ensure_ascii=False)
 
-        if DEBUG:
-            print(content)
-
         response = self.task_director.generateResponse(content)
         response = fixResponse(response, "text")
 
-        print('[task]\n', response)
-        with open("./debug.txt", "w", encoding='utf-8') as f:
-            f.write(response)
-        print('=' * 10)
+        if DEBUG:
+            print('[judge]\n', response)
+            print('=' * 10)
+            print(content)
+            print('[task]\n', response)
+            with open("./debug.txt", "w", encoding='utf-8') as f:
+                f.write(response)
+            print('=' * 10)
+
         play = json.loads(response)
 
         return judge, play
@@ -185,42 +190,41 @@ class BackEndSystem(object):
         """
 
         task_prompt = read_file("task")
-        bg_prompt = read_file('txt2img_background')
         eq_prompt = read_file('equipment_craft')
         sk_prompt = read_file('skill_generate')
         custom_prompt = read_file('task_custom')
 
-        self.executor = ThreadPoolExecutor(max_workers=4)
-
+        # 以用户名为键值
         self.player_dict: dict[str:Player] = {}
+        # 以邮箱为键值
+        self.player_dict2: dict[str:Player] = {}
+        # 当前在线玩家
+        self.online_player: dict[str:Player] = {}
 
+        # 各组件初始化
         self.task_generator: LLMAPI = initialize_llm(task_prompt)
-        self.bg_generator: LLMAPI = initialize_llm(bg_prompt)
         self.equipment_generator: LLMAPI = initialize_llm(eq_prompt)
         self.skill_generator: LLMAPI = initialize_llm(sk_prompt)
         self.task_custom: LLMAPI = initialize_llm(custom_prompt)
-
         self.sd: StableDiffusion = StableDiffusion()
+        # self.sd.initialize()
 
-        self.future_task_queue = self.executor.submit(self._init_task_queue, 3)
+        # 任务队列
         self.task_queue = {}
 
         self.start_time = datetime.now()
 
-    def _init_task_queue(self, num):
+    def refresh_task_queue(self, num=3):
         task_type = ["互动任务", "助人任务", "好汉任务", "豪杰任务", "英雄任务", "救世主任务"]
         probabilities = [0.20, 0.20, 0.25, 0.20, 0.15, 0.00]
-        task_queue = {}
 
         # 使用random.choices根据给定的概率选取项
         for i in range(num):
             chosen_item = random.choices(task_type, weights=probabilities, k=1)[0]
-            task = self._task_generate(chosen_item)
-            task_queue[task["task_name"]] = task
+            task = self.task_generate(chosen_item)
+            self.task_queue[task["task_name"]] = task
 
-        return task_queue
-
-    def _task_generate(self, task_type, description="任意"):
+    def task_generate(self, task_type, description="任意"):
         """
         Generate a task based on the task type and description.
 
@@ -263,20 +267,28 @@ class BackEndSystem(object):
             name (str): The player name.
             feature (str): The player's description.
         """
+        if name in self.player_dict:
+            return False
+        if email in self.player_dict2:
+            return False
+
         dm_prompt = read_file("DM")
         dm_model: LLMAPI = initialize_llm(dm_prompt)
         new_player = Player(name, email, password, dm_model)
 
         self.player_dict[name] = new_player
+        self.player_dict2[email] = new_player
+
+        return True
 
     def login_player(self, email, password):
-        player: Player = self.player_dict[email]
+        player: Player = self.player_dict2[email]
         if password != player.password:
-            return False
+            return None
         else:
-            return True
+            return player.name
 
-    def get_player_input(self, player_name: str, player_input: str, mode: int):
+    def get_player_input(self, player_name: str, player_input: str, mode: int, roles):
         """
         Get the player input and return the response from the DM.
 
@@ -299,6 +311,14 @@ class BackEndSystem(object):
         # 与任务演绎系统交流
         elif mode == 1:
             judge, play = player.talk_to_director(player_input)
+            # 判断是否出现新人物
+            """
+            if play["role"] and play["role"] not in roles:
+                description = f"【场景】"
+                img = self.sd()
+            """
+
+            # 游戏结束，进入结算
             if play["status"] == 1:
                 task_name = player.takeOffTask()
                 self.task_queue.pop(task_name)
@@ -306,8 +326,6 @@ class BackEndSystem(object):
                 rewards = play["reward"]
                 if rewards:
                     player.getReward(rewards)
-                # self.task_queue.pop(task)
-                # self.task_queue.pop(task_id)
 
             print('[debug]play:', judge, play)
             return play
@@ -390,9 +408,6 @@ class BackEndSystem(object):
             return skill
 
     def get_all_available_tasks(self, player_name):
-        if self.future_task_queue.done():
-            self.task_queue = self.future_task_queue.result()
-
         tasks = [task["task_name"] for task in self.task_queue.values() if task["occupied"] == False]
 
         return tasks
@@ -402,29 +417,47 @@ class BackEndSystem(object):
         print(f"Welcome, {player.name}!")
         return player.attributes
 
-    def getGameTime(self, player_name):
-        return "00:00:00"
+
+class MultiThreadManager:
+    def __init__(self, backend_sys: BackEndSystem, check_interval=600):
+        self.backend_sys = backend_sys
+        self.check_interval = check_interval
+
+        self.threads = []
+        self.running = True
+
+        # 创建并启动任务监控线程
+        monitor_thread = threading.Thread(target=self.refresh_task_queue)
+        monitor_thread.start()
+        self.threads.append(monitor_thread)
+
+        # 创建并启动玩家信息保存线程
+        player_thread = threading.Thread(target=self.save_player_info)
+        player_thread.start()
+        self.threads.append(player_thread)
+
+    # 每隔600秒检查一次任务队列，如果小于3就会自动补充
+    def refresh_task_queue(self, max_size=3):
+        while self.running:
+            existed_task_num = len(self.backend_sys.task_queue)
+            if len(self.backend_sys.task_queue) < max_size:
+                new_task_num = max_size - existed_task_num
+                self.backend_sys.refresh_task_queue(new_task_num)
+                print(f"队列大小少于{max_size}，已添加{new_task_num}个元素。当前队列大小：{len(self.backend_sys.task_queue)}")
+            time.sleep(self.check_interval)
+
+    def save_player_info(self):
+        while self.running:
+            for name, info in self.backend_sys.online_player.items():
+                filename = f'./saves/{name}.pkl'
+                with open(filename, 'wb') as file:
+                    pickle.dump(info, file)
+            time.sleep(self.check_interval)
+
+    def stop(self):
+        self.running = False
+        for thread in self.threads:
+            thread.join()
 
 
-if __name__ == '__main__':
 
-    bs = BackEndSystem()
-
-    # print("Complt.")
-
-    player_name = "RLG"
-    player_feature = "我是一个骑士，我有一个大剑，也有一个盾牌，我遵循骑士道义，惩恶扬善，不惧权贵，打抱不平，云游四方，为正义而战，为弱小者而发声。"
-
-    # print("So what?")
-
-    bs.registerPlayer(player_name, player_feature)
-
-    xx = bs.getAllAvailableTasks(player_name)
-
-    print(xx)
-
-    while True:
-        user_input = input("Input:")
-        response1, response2 = bs.getPlayerInput(player_name, user_input)
-        print(response1)
-        print(response2)
