@@ -1,4 +1,4 @@
-# streamlit run ./streamlit/home_page.py
+# streamlit run ./streamlit/主页.py
 # 初始化
 
 import streamlit as st

@@ -66,5 +66,5 @@ def parse_message(message):
     else:
         return "系统", message
 
-url = "http://10.43.104.129:5000/"
+url = "http://127.0.0.1:9981/"
 ST_PATH = os.path.split(os.path.realpath(__file__))[0]
