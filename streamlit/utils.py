@@ -17,11 +17,6 @@ def md5_encrypt(password):
     
     return encrypted_password
 
-# 示例使用
-password = "your_password"
-encrypted_password = md5_encrypt(password)
-print(f"原始密码: {password}")
-print(f"MD5 加密后: {encrypted_password}")
 
 def set_background(image_path, opacity):
     with open(image_path, "rb") as image_file:
@@ -57,5 +52,5 @@ def parse_message(message):
     else:
         return "系统", message
 
-url = "http://127.0.0.1:5000/"
+url = "http://10.43.104.129:5000/"
 ST_PATH = os.path.split(os.path.realpath(__file__))[0]

@@ -65,7 +65,7 @@ def show_login_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title('RLG GAME')
-        username = st.text_input('Username')
+        email = st.text_input('email')
         password = st.text_input("Password", type="password")
         col2_1,col2_2 = st.columns([1, 1])
         with col2_1:
@@ -73,23 +73,24 @@ def show_login_page():
         with col2_2:
             signup_button = st.button('Sign up')
 
-        if login_button and username and password :
-            # func = '/login'
-            # r = requests.get(url = url+func, josn = {'email':email,'password':md5_encrypt(password)})
+        if login_button and email and password :
+            func = 'login'
+            r = requests.get(url = url+func, json = {'email':email,'password':md5_encrypt(password)})
             # r = json.loads(r.text)
-            # try:
-            #     if r['status_code']==200:
-            #         st.session_state['waiting'] = True
-            #         st.session_state['username'] = username
-            #         st.rerun()
-            #     else:
-            #         st.write(f"登录出错，请检查，错误码是{r['status_code']}")
-            # except:
-            #     st.write("与服务器的连接出错")
+            try:
+                r = json.loads(r.text)
+                if r['status_code']==200:
+                    st.session_state['waiting'] = True
+                    st.session_state['username'] = r['username']
+                    st.rerun()
+                else:
+                    st.write(f"登录出错，请检查，错误码是{r['status_code']}")
+            except:
+                st.write("与服务器的连接出错")
             # TODO 发送请求判断用户名与密码对应，待完善后台逻辑
-            st.session_state['waiting'] = True
-            st.session_state['username'] = username
-            st.rerun()  # 重新运行应用以更新页面内容
+            # st.session_state['waiting'] = True
+            # st.session_state['username'] = username
+            # st.rerun()  # 重新运行应用以更新页面内容
         if signup_button:
             st.session_state['sign_up'] = True
             st.rerun()
@@ -113,23 +114,23 @@ def show_signup_page():
         if signup_button and username and password and email and password==password2:
             #TODO 发送请求判断判断是否可以注册，否则xxx，待完善后台逻辑
             # try:
-            #     func = '/signup'
-            #     r = requests.get(url = url+func, josn = {'email':email,'username':username,'password':md5_encrypt(password)})
-            #     r = json.loads(r.text)
-            #     if r['status_code']==200:
-            #         st.session_state['waiting'] = True
-            #         st.session_state['username'] = username
-            #         st.session_state['sign_up'] = False
-            #         st.rerun()
-            #     else:
-            #         st.write(f"注册出错，请检查，错误码是{r['status_code']}")
+            func = 'signup'
+            r = requests.get(url = url+func, json = {'email':email,'username':username,'password':md5_encrypt(password)})
+            r = json.loads(r.text)
+            if r['status_code']==200:
+                st.session_state['waiting'] = True
+                st.session_state['username'] = username
+                st.session_state['sign_up'] = False
+                st.rerun()
+            else:
+                st.write(f"注册出错，请检查，错误码是{r['status_code']}")
             # except:
-            #     st.write("与服务器的连接出错")
+                # st.write("与服务器的连接出错")
 
-            st.session_state['waiting'] = True
-            st.session_state['username'] = username
-            st.session_state['sign_up'] = False
-            st.rerun()
+            # st.session_state['waiting'] = True
+            # st.session_state['username'] = username
+            # st.session_state['sign_up'] = False
+            # st.rerun()
 
 def show_waiting_page():
     st.title('欢迎来到苍穹大陆')
@@ -200,7 +201,7 @@ if st.session_state['logged_in']:
     show_welcome_page()
 elif st.session_state['waiting']:
     show_waiting_page()
-    login()
+    # login()
     st.session_state['waiting'] = False
     st.session_state['logged_in'] = True
     st.rerun()
