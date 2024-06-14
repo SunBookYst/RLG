@@ -167,8 +167,7 @@ def show_welcome_page():
         st.markdown(
             f"""
             <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                <img src="data:image/png;base64,{avatar_base64}"
-                     style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
+                <img src="data:image/png;base64,{avatar_base64}" style="width: 60px; height: 60px; margin-right: 10px;">
                 <div><strong>{role}:</strong> {text}</div>
             </div>
             """,
