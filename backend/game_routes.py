@@ -69,7 +69,7 @@ def interact_with_task():
     # TODO judge and task is not accordant.
     # TODO bs do not make the rewards...
 
-    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1)
+    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1, roles = data['roles'])
 
     print('[server]', task_response)
 
@@ -94,7 +94,7 @@ def get_player_info():
 @game_routes.route('/bag', methods=['GET'])
 def get_player_bag():
     data = request.json
-    return {"equipment": bs.player_dict[data['role']].bag}
+    return {"equipments": bs.player_dict[data['role']].bag}
 
 
 @game_routes.route('/skill', methods=['GET'])
