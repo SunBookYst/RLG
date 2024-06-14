@@ -57,21 +57,16 @@ def interact_with_dm():
 @game_routes.route('/select', methods=['GET'])
 def select_task():
     data = request.json
-    judge_response, task_response = bs.select_task(player_name=data["role"], task_name=data["task_name"])
+    task_response, task_bg = bs.select_task(player_name=data["role"], task_name=data["task_name"])
 
-    return task_response
+    return task_response, task_bg
 
 
 @game_routes.route('/feedback', methods=['GET'])
 def interact_with_task():
     data = request.json
-    
-    # TODO judge and task is not accordant.
-    # TODO bs do not make the rewards...
-
-    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1)
-
-    print('[server]', task_response)
+    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1,
+                                        roles=data["roles"], equipment=data["items"], skill=data["skills"])
 
     return task_response
 
@@ -79,13 +74,14 @@ def interact_with_task():
 @game_routes.route('/task_info', methods=['GET'])
 def get_all_tasks():
     data = request.json
-    return {'task_list': bs.get_all_available_tasks(data["role"])}
+    response = bs.get_all_available_tasks(data["role"])
+
+    return {'task_list': response}
 
 
 @game_routes.route('/status', methods=['GET'])
 def get_player_info():
     data = request.json
-
     response = bs.get_player_info(data["role"])
 
     return {'attribute': response}
@@ -103,39 +99,36 @@ def get_player_skill():
     return {"skills": bs.player_dict[data['role']].skills}
 
 
-@game_routes.route('/time', methods=['GET'])
-def get_user_time():
-    data = request.json
-
-    return {'time': bs.getPlayerTime(data["role"])}
-
-
-@game_routes.route('/legal', methods=['GET'])
-def check_name_legal():
-    data = request.json
-    if data["mode"] == 0:
-        response = bs.checkNameValid(data["content"])
-    elif data["mode"] == 1:
-        response = bs.checkFeatureValid(data["content"])
-    else:
-        return {'status':False}
-    return {'status':response}
-
-
 @game_routes.route('/merge', methods=['GET'])
 def get_an_item():
     data = request.json
-    response = bs.craft_items(data["role"], data["mode"], data["num"], data["des"])
+    response = bs.craft_items(player_name=data["role"], mode=data["mode"], num=data["num"], description=data["des"])
 
     return {'text': response}
 
 
-@game_routes.route('/custom', methods=['GET'])
+@game_routes.route('/task_request', methods=['GET'])
 def customize_a_task():
     data = request.json
-    response = bs.task_customize(data["role"], data["mode"], data["num"], data["des"])
+    response = bs.task_customize(player_name=data["role"], description=data["text"])
 
     return {'text': response}
+
+
+@game_routes.route('/task_info_personal', methods=['GET'])
+def get_all_customized_tasks():
+    data = request.json
+    response = bs.get_all_available_personal_tasks(data["role"])
+
+    return {'task_list': response}
+
+
+@game_routes.route('/select_personal', methods=['GET'])
+def select_customized_task():
+    data = request.json
+    task_response, task_bg = bs.select_personal_task(player_name=data["role"], task_name=data["task_name"])
+
+    return task_response, task_bg
 
 
 # TODO: save and load.
