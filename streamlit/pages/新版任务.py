@@ -20,6 +20,8 @@ if 'task_chat_history' not in st.session_state:
     st.session_state['task_chat_history'] = []
 if 'selected_items' not in st.session_state:
     st.session_state.selected_items = []
+if 'selected_skills' not in st.session_state:
+    st.session_state.selected_skills = []
 if 'roles_task' not in st.session_state:
     st.session_state.roles_task = ["系统"]
 
@@ -60,20 +62,20 @@ def play_a_task(user_input, selected_items):
     if response.status_code == 200:
         data = response.json()
         role = data["role"]
-        if role==None:
-            role ="系统"
+        if role is None:
+            role = "系统"
         if role not in st.session_state["roles_task"]:
             st.session_state["roles_task"].append(role)
-            #TODO 接受图片并保存到相关路径下
-            base64_image_data = data['image_data']
+            # TODO 接受图片并保存到相关路径下
+            base64_image_data = data.get('image_data')
             if base64_image_data:
                 # 解码 Base64 数据
                 image_data = base64.b64decode(base64_image_data)
-            output_path = ST_PATH+f"/image/{role}.png"  # 替换为实际的保存路径
+                output_path = ST_PATH + f"/image/{role}.png"  # 替换为实际的保存路径
 
-            # 将解码后的数据保存为 PNG 格式的图片
-            with open(output_path, "wb") as image_file:
-                image_file.write(image_data)
+                # 将解码后的数据保存为 PNG 格式的图片
+                with open(output_path, "wb") as image_file:
+                    image_file.write(image_data)
 
         if 'reward' not in data:
             st.session_state['task_chat_history'].append((st.session_state['username'], user_input))
@@ -85,15 +87,15 @@ def play_a_task(user_input, selected_items):
             return data['text'], False
     else:
         st.write("Error: Unable to communicate with the server.")
-        return None,False
+        return None, False
 
 # 结束任务,目前需要正常结束才可清除历史角色
 def end_task():
     st.session_state.condition = 0
     for role in st.session_state.roles_task:
-        os.remove(ST_PATH + f"/image/{role}.png")
+        if role!="系统":
+            os.remove(ST_PATH + f"/image/{role}.png")
     st.session_state.roles_task = []
-
 
 # 获取背包信息
 def get_bag_info():
@@ -142,17 +144,18 @@ else:
     elif st.session_state.condition == 2:
         st.write("任务初始化中...")
         time.sleep(0.5)
-        # st.session
         st.session_state.condition = 3
         st.rerun()
+
     # 玩家选择物品
     elif st.session_state.condition == 3:
-        st.title("选择你要带入任务的物品 (最多10件)")
+        st.title("选择你要带入任务的物品 (最多5件)")
         bag_items = get_bag_info()['equipments']
         selected_items = st.session_state.selected_items
 
         # 显示背包物品并允许选择
         for item in bag_items:
+            st.write(item)
             if st.checkbox(item, key=item):
                 if item not in selected_items:
                     selected_items.append(item)
@@ -163,8 +166,33 @@ else:
         st.write(f"已选择的物品: {selected_items}")
 
         # 限制选择的物品数量
-        if len(selected_items) > 10:
-            st.error("你最多只能选择10件物品！")
+        if len(selected_items) > 5:
+            st.error("你最多只能选择5件物品！")
+        else:
+            if st.button("确认并选择技能"):
+                st.session_state.condition = 5
+                st.rerun()
+
+    # 玩家选择技能
+    elif st.session_state.condition == 5:
+        st.title("选择你要带入任务的技能 (最多5个)")
+        skill_items = get_skill_info()['skills']
+        selected_skills = st.session_state.selected_skills
+
+        # 显示技能并允许选择
+        for skill in skill_items:
+            if st.checkbox(skill, key=skill):
+                if skill not in selected_skills:
+                    selected_skills.append(skill)
+            else:
+                if skill in selected_skills:
+                    selected_skills.remove(skill)
+
+        st.write(f"已选择的技能: {selected_skills}")
+
+        # 限制选择的技能数量
+        if len(selected_skills) > 5:
+            st.error("你最多只能选择5个技能！")
         else:
             if st.button("确认并开始任务"):
                 st.session_state.condition = 4
@@ -200,57 +228,44 @@ else:
                     print(f"{avatar_url}不存在！切换为系统头像")
                     with open(ST_PATH + f"/image/系统.png", "rb") as avatar_file:
                         avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-                # 将头像和消息组合在一个 HTML 块中
                 st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <img src="data:image/png;base64,{avatar_base64}"
-                            style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;">
-                        <div><strong>{role}:</strong> {text}</div>
-                    </div>
-                    """,
+                    f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+                    f'<img src="data:image/png;base64,{avatar_base64}" style="width: 30px; height: 30px; margin-right: 10px;">'
+                    f'<strong>{role}:</strong> {text}'
+                    f'</div>',
                     unsafe_allow_html=True
                 )
             else:
-                st.markdown(
-                    f"""
-                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <div>{text}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                st.markdown(f'**{text}**')
 
-        # 在右侧栏显示带入任务的装备列表并允许选择
-        with st.sidebar:
-            st.title("任务装备")
-            selected_items = st.session_state.selected_items
-            for item in selected_items:
-                st.checkbox(item, key=f"sidebar_{item}", value=True, disabled=True)
+        # 用户输入
+        st.write("请输入你的行动指令:")
+        user_input = st.text_input("")
 
-            # 允许在任务中选择装备
-            st.write("在任务中选择的装备:")
-            selected_task_items = []
-            for item in selected_items:
-                if st.checkbox(item, key=f"task_{item}"):
-                    selected_task_items.append(item)
-            st.session_state.selected_task_items = selected_task_items
-            st.write(f"已选择的任务装备: {selected_task_items}")
-
-        user_input = st.chat_input("说点什么")
+        # 处理用户输入
         if user_input:
-            st.session_state.user_input = user_input
-            if st.session_state.focus_on_task:
-                st.session_state.play, st.session_state.focus_on_task = play_a_task(
-                    st.session_state.user_input,
-                    st.session_state.selected_task_items
-                                    )
-                if st.session_state.focus_on_task:
-                    st.session_state.condition = 1
-                    st.rerun()
-                else:
-                    if st.button("exit", on_click=end_task):
-                        st.session_state.condition = 0
-                        st.write("感谢您的努力，下次再会！")
-                        time.sleep(1.5)
-                        st.rerun()
+            response_text, continue_task = play_a_task(user_input, st.session_state.selected_items)
+            if not continue_task:
+                st.session_state.focus_on_task = False
+                end_task()
+            st.session_state.user_input = ""
+            st.rerun()
+
+        # 显示侧边栏
+        st.sidebar.title("已选择的物品和技能")
+        st.sidebar.subheader("物品")
+        for item in st.session_state.selected_items:
+            st.sidebar.write(item)
+        
+        st.sidebar.subheader("技能")
+        for skill in st.session_state.selected_skills:
+            st.sidebar.write(skill)
+
+        # 结束任务按钮
+        if st.button("结束任务"):
+            end_task()
+            st.session_state['task_chat_history'].append(("系统", "任务已结束。"))
+            st.session_state.condition = 0
+            st.session_state.selected_items = []
+            st.session_state.selected_skills = []
+            st.rerun()
