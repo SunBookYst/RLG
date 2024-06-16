@@ -57,19 +57,17 @@ def interact_with_dm():
 @game_routes.route('/select', methods=['GET'])
 def select_task():
     data = request.json
-    task_response, task_bg = bs.select_task(player_name=data["role"], task_name=data["task_name"])
+    task_response = bs.select_task(player_name=data["role"], task_name=data["task_name"])
 
-    return task_response, task_bg
+    return task_response
 
 
 @game_routes.route('/feedback', methods=['GET'])
 def interact_with_task():
     data = request.json
-    # TODO judge and task is not accordant.
-    # TODO bs do not make the rewards...
-    print('[server]', task_response)
     task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1,
                                         roles=data["roles"], equipment=data["items"], skill=data["skills"])
+
     return task_response
 
 

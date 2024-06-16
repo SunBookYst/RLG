@@ -303,7 +303,7 @@ class BackEndSystem(object):
         player.personal_task_queue[task['task_name']] = task
         return task
 
-    def get_player_input(self, player_name: str, player_input: str, mode: int, equipment: list, skill: list, roles: list):
+    def get_player_input(self, player_name: str, player_input: str, mode: int, equipment: list=None, skill: list=None, roles: list=None):
         """
         Get the player input and return the response from the DM.
 
@@ -336,8 +336,6 @@ class BackEndSystem(object):
                 print("generating img...")
                 description = f"【场景】{play['text']}\n【需要描绘的角色】{play['role']}"
                 img = self.sd.standard_workflow(description, 1)
-
-                play["npc_data"] = True
                 play["image_data"] = img
 
             # 游戏结束，进入结算
@@ -348,13 +346,10 @@ class BackEndSystem(object):
                 rewards = play["reward"]
                 if rewards:
                     player.getReward(rewards)
-
-                play["npc_data"] = False
                 play["image_data"] = None
 
             # 游戏正常进行且没有新角色
             else:
-                play["npc_data"] = False
                 play["image_data"] = None
 
             return play
@@ -373,26 +368,25 @@ class BackEndSystem(object):
         task = self.task_queue[task_name]
         play = str(task)
 
-        if task["occupied"]:
-            return False, ""
-        else:
-            task_img = self.sd.standard_workflow(play, 2)
+        task_img = self.sd.standard_workflow(play, 2)
 
-            task["occupied"] = True
-            task["player"] = player_name
+        task["occupied"] = True
+        task["player"] = player_name
 
-            judge_prompt = read_file("judge")
-            act_prompt = read_file("task_acting")
+        judge_prompt = read_file("judge")
+        act_prompt = read_file("task_acting")
 
-            judge: LLMAPI = initialize_llm(judge_prompt)
-            task_director: LLMAPI = initialize_llm(act_prompt)
-            start: str = task_director.generateResponse(play)
-            print('start>', start)
+        judge: LLMAPI = initialize_llm(judge_prompt)
+        task_director: LLMAPI = initialize_llm(act_prompt)
+        start = task_director.generateResponse(play)
+        start = json.loads(start)
+        start['image_data'] = task_img
+        print('start>', start)
 
-            player: Player = self.player_dict[player_name]
-            player.takeOnTask(task_director, judge, task_name)
+        player: Player = self.player_dict[player_name]
+        player.takeOnTask(task_director, judge, task_name)
 
-            return start, task_img
+        return start
 
     def select_personal_task(self, player_name: str, task_name: str):
         """
@@ -469,7 +463,7 @@ class BackEndSystem(object):
 
             response = fixResponse(response, "effect")
 
-            player.bag[skill['name']] = skill
+            player.skills[skill['name']] = skill
             player.consumeProperty('龙眼', num)
 
             return skill
