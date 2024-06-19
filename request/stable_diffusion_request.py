@@ -5,19 +5,21 @@ from PIL import Image
 
 from request.llmapi import LLMAPI
 
+from util.prompt import GENERATE_CHACTER_PROMPT, GENERATE_BACKGROUND_PROMPT
 
-def read_file(prompt_name):
-    """
-    read the file name.
-    Args:
-        prompt_name (str): the file name of the prompt stored.
 
-    Returns:
-        str: the content of the file.
-    """
-    with open(f"../prompts/{prompt_name}.txt", 'r', encoding='utf-8') as file:
-        prompt = file.read()
-    return prompt
+# def read_file(prompt_name):
+#     """
+#     read the file name.
+#     Args:
+#         prompt_name (str): the file name of the prompt stored.
+
+#     Returns:
+#         str: the content of the file.
+#     """
+#     with open(f"../prompts/{prompt_name}.txt", 'r', encoding='utf-8') as file:
+#         prompt = file.read()
+#     return prompt
 
 
 class StableDiffusion:
@@ -65,17 +67,17 @@ class StableDiffusion:
         }
 
         self.pp = {
-          "resize_mode": 0,
-          "gfpgan_visibility": 0,
-          "codeformer_visibility": 0,
-          "codeformer_weight": 0,
-          "upscaling_resize": 2,
-          "upscaling_resize_w": 512,
-          "upscaling_resize_h": 512,
-          "upscaler_1": "None",
-          "upscaler_2": "None",
-          "extras_upscaler_2_visibility": 0,
-          "image": "",
+            "resize_mode": 0,
+            "gfpgan_visibility": 0,
+            "codeformer_visibility": 0,
+            "codeformer_weight": 0,
+            "upscaling_resize": 2,
+            "upscaling_resize_w": 512,
+            "upscaling_resize_h": 512,
+            "upscaler_1": "None",
+            "upscaler_2": "None",
+            "extras_upscaler_2_visibility": 0,
+            "image": "",
         }
 
         self.background = {
@@ -100,8 +102,10 @@ class StableDiffusion:
         }
 
     def initialize(self):
-        self.prompt_generator_c.generateResponse(read_file("txt2img_character"))
-        self.prompt_generator_b.generateResponse(read_file("txt2img_background"))
+
+
+        self.prompt_generator_c.generateResponse(GENERATE_CHACTER_PROMPT)
+        self.prompt_generator_b.generateResponse(GENERATE_BACKGROUND_PROMPT)
 
     def input_prompt(self, prompt):
         """

@@ -5,6 +5,8 @@ import re
 import streamlit as st
 import hashlib
 
+from util.constant import FLASK_SERVER
+
 def md5_encrypt(password):
     # 创建一个 MD5 hash 对象
     md5_hash = hashlib.md5()
@@ -65,6 +67,11 @@ def parse_message(message):
         return match.group(1), match.group(2)
     else:
         return "系统", message
+    
+ip, port = FLASK_SERVER
 
-url = "http://10.47.144.209:5000/"
+if ip == "0.0.0.0":
+    ip = "127.0.0.1"
+
+url = f"http://{ip}:{port}/"
 ST_PATH = os.path.split(os.path.realpath(__file__))[0]
