@@ -6,17 +6,16 @@ from PIL import Image
 from request.llmapi import LLMAPI
 
 
-def read_file(path):
+def read_file(prompt_name):
     """
-    读取文件内容。
-
+    read the file name.
     Args:
-        path (str): 文件路径。
+        prompt_name (str): the file name of the prompt stored.
 
     Returns:
-        str: 文件内容。
+        str: the content of the file.
     """
-    with open(path, 'r', encoding='utf-8') as file:
+    with open(f"../prompts/{prompt_name}.txt", 'r', encoding='utf-8') as file:
         prompt = file.read()
     return prompt
 
@@ -48,27 +47,19 @@ class StableDiffusion:
         self.prompt_generator_c = LLMAPI("KIMI-server")
         self.prompt_generator_b = LLMAPI("KIMI-server")
 
-        self.t2i = {
+        self.character = {
             "prompt": "masterpiece,best quality, ultra-detailed, highres, clear face, only 1 character",
-            "negative_prompt": "bad hand, (ugly:1.5), lowres, bad anatomy, [:((No more than one thumb, "
-                               "index finger, middle finger, ring finger and little finger on one hand),(mutated hands"
-                               " and fingers:1.5 ), fused ears, one hand with more than 5 fingers, one hand with less"
-                               " than 5 fingers):0.5],multiple breasts, (mutated hands and fingers:1.5 ), liquid body,"
-                               " liquid tongue,anatomical nonsense,more than 2 nipples,different nipples,fused nipples,"
-                               "bad hands, bad pussy, fused pussy, text, error, missing fingers, extra digit, "
-                               "fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, "
-                               "signature, watermark, username, blurry, Missing limbs, three arms, bad feet, text font "
-                               "ui, signature, blurry, malformed hands, long neck, (long body :1.3), (mutation ,"
-                               "poorly drawn :1.2), disfigured, malformed,mutated, three legs",
+            "negative_prompt": "NSFW, (worst quality, low quality:1.3)",
             "seed": -1,
             "batch_size": 1,
             "n_iter": 1,
-            "steps": 30,
-            "cfg_scale": 7,
+            "steps": 22,
+            "cfg_scale": 9,
             "width": 512,
             "height": 512,
             "override_settings": {
-                "sd_model_checkpoint": "coffeensfw_v10.safetensors [ed47f47f0a]",
+                "sd_model_checkpoint": "etherBluMix_etherBluMix7.safetensors [686eec2aef]",
+                "sd_vae": "kl-f8-anime2.ckpt",
             },
             "sampler_index": "DPM++ 2M Karras",
         }
@@ -89,7 +80,7 @@ class StableDiffusion:
 
         self.background = {
             "prompt": "masterpiece,best quality, ultra-detailed, highres,",
-            "negative_prompt": "low quality, human, man, character",
+            "negative_prompt": "low quality, ((human)), man, character",
             "seed": -1,
             "batch_size": 1,
             "n_iter": 1,
@@ -98,7 +89,8 @@ class StableDiffusion:
             "width": 512,
             "height": 256,
             "override_settings": {
-                "sd_model_checkpoint": "coffeensfw_v10.safetensors [ed47f47f0a]",
+                "sd_model_checkpoint": "etherBluMix_etherBluMix7.safetensors [686eec2aef]",
+                "sd_vae": "kl-f8-anime2.ckpt",
             },
             "sampler_index": "DPM++ 2M Karras",
         }
@@ -119,7 +111,7 @@ class StableDiffusion:
             prompt (str): Additional prompt to be appended.
         """
         print("Entering additional input for the prompt...")
-        self.t2i['prompt'] += prompt
+        self.character['prompt'] += prompt
 
     def generate_images(self, prompt=None):
         """
@@ -132,10 +124,10 @@ class StableDiffusion:
         """
         # Stable Diffusion API URL
         url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
-        self.t2i['prompt'] += prompt
+        self.character['prompt'] += prompt
         # Make the API request
         print("Generating...")
-        response = requests.post(url, json=self.background, headers=self.headers)
+        response = requests.post(url, json=self.character, headers=self.headers)
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Process the response
@@ -204,11 +196,7 @@ class StableDiffusion:
         # print(r)
         img_data = r['image']
 
-        image = Image.open(io.BytesIO(base64.b64decode(img_data.split(",",1)[0])))
-
-        # Save the image
-        image.save(f'output_p.png')
-        print("Images saved successfully.")
+        image = img_data.split(",", 1)[0]
 
         return image
 
@@ -219,14 +207,15 @@ class StableDiffusion:
         :param mode: 1（人像模式）|2（背景模式）
         :return: 像素化后的图片
         """
-        positive_prompt = ""
+        image = None
 
         if mode == 1:
             positive_prompt = self.prompt_generator_c.generateResponse(need)
+            image = self.generate_images(positive_prompt)
         elif mode == 2:
             positive_prompt = self.prompt_generator_b.generateResponse(need)
+            image = self.generate_background(positive_prompt)
 
-        image = self.generate_images(positive_prompt)
         return self.process_images(image)
 
 
@@ -234,5 +223,5 @@ if __name__ == "__main__":
     sd = StableDiffusion()
     sd.initialize()
     sd.standard_workflow("一个小姑娘", 1)
-    sd.standard_workflow("一栋房子", 1)
+    sd.standard_workflow("一栋房子", 2)
 
