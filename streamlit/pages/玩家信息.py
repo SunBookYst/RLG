@@ -26,3 +26,8 @@ else:
         st.rerun()
 
     st.write(attribute)
+
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)

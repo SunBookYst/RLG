@@ -43,3 +43,8 @@ else:
     st.write(equipment)
     st.write("技能槽")
     st.write(skill)
+
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)

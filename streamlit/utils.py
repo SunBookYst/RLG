@@ -1,11 +1,17 @@
 import os
 import base64
 import re
-
+import time
 import streamlit as st
 import hashlib
 import socket
 import subprocess
+import sys
+import requests
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
 
 from util.constant import FLASK_SERVER
 
@@ -77,7 +83,7 @@ def get_local_ip():
     return st.session_state['_self_ip']
 
 def get_local_port():
-    if '_self_port' not in st.session_state():
+    if '_self_port' not in st.session_state:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('', 0))
         port = sock.getsockname()[1]
@@ -96,3 +102,166 @@ if ip == "0.0.0.0":
 
 url = f"http://{ip}:{port}/"
 ST_PATH = os.path.split(os.path.realpath(__file__))[0]
+
+def refresh(role):
+    # pass
+    r = requests.get(url=url+"/refresh",json={'role':role})
+    r = r.json()
+    st.session_state.id_list = r['id_list']
+    st.session_state.role_list = r['role_list']
+    st.session_state.accept_id = r['accept_id']
+    if any(st.session_state.accept_id):
+        st.session_state.condition_cha = 2
+    if len(st.session_state.id_list)>0:
+        st.sidebar.markdown(f"### Challenge Info 🔴")
+
+fake_dailoge = [
+    {
+        "role":"Player1",
+        "text":"我决定让对手肚子痛！"
+    },
+    {
+        "role":"Player2",
+        "text":"我决定让对手手脚抽筋"
+    },
+    {
+        "role":"System",
+        "text":"Player1 和 Player2 分别使出了自己的独家绝学，尽管 Player2 感到腹中不适，他捂住肚子，开始想办法治疗自己，而 Player1 手脚突然抽痛，差点站不起来，Player1 难以维持一个适合战斗的状态！"
+    },
+    {
+        "role":"Player1",
+        "text":"我决定用大剑砍过去！"
+    },
+    {
+        "role":"Player2",
+        "text":"我决定射出知音箭！"
+    },
+    {
+        "role":"System",
+        "text":"Player2 射出了知音箭，知音箭箭如其名，带着音爆冲向 Player1, 但 Player1 用他的剑挡住了这一击！ Player1 将箭弹开后，一剑刺了过去！ Player2 堪堪躲开，然而手臂却不慎被割到，一两滴鲜血冒了出来。"
+    },
+]
+
+battle_attributes = {
+    "logged_in"     : False,
+    "waiting"       : False,
+    "Generating"    : False,
+    "battle_history": fake_dailoge,
+    "username": "ADMIN"
+}
+
+check_init_state(battle_attributes)
+
+html_local_player = '''
+<style>
+.row-2{{
+    position: relative;
+    width: 95%;
+    color: #fff;
+    line-height: 1.4rem;
+    font-size:large;
+    word-wrap: break-word;
+    border: 1px solid teal;
+    border-radius: 10px;
+    background: teal;
+    padding: 0.5rem;
+}}
+.row-2::after{{
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    top: 10px;
+    right: -10px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid teal;
+}}
+.logline{{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+}}
+.left{{
+    flex: 9;
+    justify-content: center; 
+    display: flex;
+    align-items: center;
+}}
+.right{{
+    flex:1;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}}
+</style>
+
+<div class="logline">
+    <div class="left">
+        <div class="row-2">
+            {content}
+        </div>
+    </div>
+    <div class="right">
+        <div><img src="data:image/png;base64,{avatar_base64}" style="height: 60px;"></div>
+    </div>
+'''
+
+html_remote_player = '''
+<style>
+.row-2{{
+    position: relative;
+    width: 95%;
+    color: #fff;
+    line-height: 1.4rem;
+    font-size:large;
+    word-wrap: break-word;
+    border: 1px solid teal;
+    border-radius: 10px;
+    background: teal;
+    padding: 0.5rem;
+}}
+.row-2::after{{
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    top: 10px;
+    left: -10px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid teal;
+}}
+.logline{{
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    width: 100%;
+    align-items: flex-start;
+}}
+.left{{
+    flex: 1;
+    justify-content: center; 
+    display: flex;
+    align-items: center;
+}}
+.right{{
+    flex:9;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+}}
+</style>
+<div class="logline">
+    <div class="left">
+        <div><img src="data:image/png;base64,{avatar_base64}" style="height: 60px;"></div>
+    </div>
+    <div class="right">
+        <div class="row-2">
+            {content}
+        </div>
+    </div>
+</div>
+'''

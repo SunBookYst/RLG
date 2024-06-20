@@ -9,7 +9,9 @@ import os
 
 import concurrent.futures
 
-sys.path.append('..')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
 
 # from subsenario.utils import initialize_llm
 from request import LLMAPI, StableDiffusion
@@ -574,6 +576,7 @@ class BackEndSystem(object):
                     debug_print("generating img...")
                     description = f"【场景】{play['text']}\n【需要描绘的角色】{play['role']}"
                     img = self.sd.standard_workflow(description, 1)
+                    # img = None
                     play["image_data"] = img
 
                 # 游戏结束，进入结算
@@ -613,6 +616,7 @@ class BackEndSystem(object):
         play = str(task)
 
         task_img = self.sd.standard_workflow(play, 2)
+        # task_img = None
 
         # if task["occupied"] == False:
         #     raise ValueError("This task is not available now")
@@ -658,6 +662,7 @@ class BackEndSystem(object):
             raise ValueError("This task is not available now")
         
         task_img = self.sd.standard_workflow(play, 2)
+        # task_img = None
 
         task["occupied"] = True
         task["player"] = player_name

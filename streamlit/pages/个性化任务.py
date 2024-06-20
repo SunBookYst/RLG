@@ -335,3 +335,8 @@ else:
             st.session_state.selected_items_personal = []
             st.session_state.selected_skills_personal = []
             st.rerun()
+
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)

@@ -28,7 +28,7 @@ def craft(mode, num, des):
 
 if not st.session_state['logged_in']:
     st.write("尊敬的勇士，请先表明身份！")
-    st.page_link("home_page.py", label="Go to login")
+    st.page_link("主页.py", label="Go to login")
 else:
     selected_text = st.selectbox(
         'Pick a mode',
@@ -41,3 +41,8 @@ else:
     if st.button("craft"):
         output = craft(material, num, description)
         st.write(output)
+
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)

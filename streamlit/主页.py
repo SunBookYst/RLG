@@ -4,8 +4,6 @@
 import streamlit as st
 import requests
 import json
-import re
-
 from utils import *
 
 # 初始化会话状态
@@ -180,7 +178,6 @@ def show_welcome_page():
             st.session_state['username'] = None
         st.rerun()  # 重新运行应用以更新页面内容
 
-
 # 根据登录状态显示不同的页面
 if st.session_state['logged_in']:
     show_welcome_page()
@@ -194,6 +191,13 @@ elif st.session_state['sign_up']:
     show_signup_page()
 else:
     show_login_page()
+
+
+
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)
 
 
 

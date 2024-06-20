@@ -11,14 +11,14 @@ Request List
 - 请求查看个性化任务列表 同查看任务列表, 路由为 task_info_personal,
 - 选择任务/个性化任务的select和select_personal两个路由, 发送{'role':str,'task_name':str},返回{'image_data':base64，'text':str}，imamge_data为任务背景图，text为进入任务后收到的第一句话
 
-- 发起挑战 发送 {'role1':str,'role2':str,'image_data'},role1是发起者，role2是被挑战者，image_data是发起挑战者的头像，需要发送给被挑战者，返回{'status_code':int，'status':bool,'image_data':base64,'id':str},分别是，status_code检测发送信息是否正确（如被挑战这是否存在，是否在线等，有可能因为前后端在线信息不同步导致错误），正确则返回200，status被挑战者是否接受挑战,若接受挑战image_data返回base64数据，否则为None，id为本次对战id，路由为/challenge
-- 接受挑战 {"role":str,'id':str},id表示对战的id，系统返回{'status_code':int},状态码200表示正常发出（意外情况，接受挑战之前被挑战者就下线了）
-- 拒绝挑战{"role":str,'id':str},id表示对战的id，系统返回{'status_code':int}，状态码200表示正常发出
-- 玩家客户端接收信息路由/challenge_info，其中ip信息随登录信息一起发送，可能会随每次登陆而不同，因此服务器需要在玩家登陆后更新这一信息, 期待服务器发送格式{'id':str,'role':str，'image_data':str},其中id为服务器生成的本次挑战的id，与返回给挑战发起者的一样，role为挑战发起者,image_data为挑战发起者的头像。返回服务器格式{'status':bool,'id':str,'image_data':base64},status为是否接受此次挑战，id为本次挑战的ip，image_data为被挑战者的头像
+- 发起挑战 发送 {'role1':str,'role2':str,'image_data':base64},role1是发起者，role2是被挑战者，image_data是发起挑战者的头像，需要发送给被挑战者，返回{'status_code':int，'status':bool,'image_data':base64,'id':str},分别是，status_code检测发送信息是否正确（如被挑战这是否存在，是否在线等，有可能因为前后端在线信息不同步导致错误），正确则返回200，status被挑战者是否接受挑战,若接受挑战image_data返回base64数据，否则为None，id为本次对战id，路由为/challenge
+- 接受挑战 {"role":str,'id':str},id表示对战的id，系统返回{'status_code':int},状态码200表示正常发出（意外情况，接受挑战之前被挑战者就下线了） /accept_challenge
+- 拒绝挑战{"role":str,'id':str},id表示对战的id，系统返回{'status_code':int}，状态码200表示正常发出 /reject_challenge
+<!-- - 玩家客户端接收信息路由/challenge_info，其中ip信息随登录信息一起发送，可能会随每次登陆而不同，因此服务器需要在玩家登陆后更新这一信息, 期待服务器发送格式{'id':str,'role':str，'image_data':str},其中id为服务器生成的本次挑战的id，与返回给挑战发起者的一样，role为挑战发起者,image_data为挑战发起者的头像。返回服务器格式{'status':bool,'id':str,'image_data':base64},status为是否接受此次挑战，id为本次挑战的ip，image_data为被挑战者的头像 -->
 - 对战中对话 {"role":str,"id":str,'text':str,'items':[],'skills':[]},id为本次对战id; 返回{'role':str,'action':str,'result':str},action为对方动作，result为系统判定结果 路由为/battle
 - 获取在线玩家列表 {'role':str},发送用户名；返回{"roles":[str,str,...]}返回用户列表 路由/get_list
 
-- 刷新接口 用于发送在线情况和处理挑战信息，发送{"role":str},ip为用户拒绝/接收的挑战ip，ip_status是用户接收/拒绝挑战，一旦超过指定时间没有发送该刷新信息，系统就判定该用户已经不在线，获取的信息包括{"id_list":[str,str,...],"role_list":[str,str,...],"accpec_id":[str,str,...]},表示此用户收到的别人发起的挑战的id、发起者名字,两者一一对应，还有一个在刷新时间内被接受的挑战列表；被接受挑战会顺序选取第一个，其他则通过下面的接口返回False来挤掉 路由/refrash
+- 刷新接口 用于发送在线情况和处理挑战信息，发送{"role":str},一旦超过指定时间没有发送该刷新信息，系统就判定该用户已经不在线，获取的信息包括{"id_list":[str,str,...],"role_list":[str,str,...],"accpet_id":[str,str,...],"role":str,"role_text":str,"system_text":str},表示此用户收到的别人发起的挑战的id、发起者名字,两者一一对应，还有一个在刷新时间内被接受的挑战列表；被接受挑战会顺序选取第一个，其他则通过下面的接口返回False来挤掉;role和role_text分别为对战中的聊天角色名和聊天内容，system_text为系统判定内容； 路由/refrash
 - 接受挑战，设定该路由而不是整合到刷新接口的目的是，避免出现接受挑战后，对方因为等待而不在线/进入了其他挑战等不可用情况，发送信息{"id":str,"status":bool},id是挑战id，status是接受用户的反馈， 返回信息{"status":bool},即对方是否可以进入该挑战（若可以进入则对方自动进入该挑战），返回为True之后该用户才进入挑战对话页面（若发送false则直接返回false） 路由/accept_c
 
 # 一些可能出现的状况，被挑战者接受挑战之前挑战者就下线了

@@ -99,6 +99,11 @@ else:
     st.write("尊敬的勇士，请先表明身份！")
     st.page_link("主页.py", label="Go to login")
 
+while True:
+    if st.session_state["logged_in"]:
+        refresh(st.session_state["username"])
+    time.sleep(5)
+
 
 
 
