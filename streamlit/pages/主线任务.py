@@ -158,7 +158,7 @@ else:
                     st.session_state.selected_skills = []
                     st.session_state.selected_items_tmp = []
                     st.session_state.selected_skills_tmp = []
-                    st.sessiom_state.task_chat_history = []
+                    st.session_state.task_chat_history = []
                     st.rerun()
 
     # 玩家选择了某个任务，开始初始化

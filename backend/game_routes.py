@@ -2,20 +2,18 @@ from flask import Blueprint, request, jsonify
 from backendsys import BackEndSystem, MultiThreadManager
 
 
-# 实例化 backend
-backend_instance = None
-
 bs = BackEndSystem()
 monitor = MultiThreadManager(bs)
 
 # 注册一个路由，马上启动！
 game_routes = Blueprint('game_routes', __name__)
 
-
 @game_routes.route('/signup', methods=['GET'])
 def register():
     data = request.json
-    res = bs.register_player(name=data["username"], email=data["email"], password=data["password"])
+    res = bs.registerPlayer(name     = data["username"], 
+                            email    = data["email"],
+                            password = data["password"])
 
     if res:
         # 返回一个 JSON 响应
@@ -33,7 +31,8 @@ def register():
 def login():
     # 返回200代表登陆成功，返回404代表邮箱或密码不正确
     data = request.json
-    user_name = bs.login_player(email=data["email"], password=data["password"])
+    user_name = bs.loginPlayer( email    = data["email"], 
+                                password = data["password"])
     if user_name:
         return jsonify({
             'status_code': 200,
@@ -45,11 +44,12 @@ def login():
             'username': None
         })
 
-
 @game_routes.route('/main', methods=['GET'])
 def interact_with_dm():
     data = request.json
-    response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=0)
+    response = bs.getPlayerInput(player_name = data["role"],
+                                player_input = data["text"],
+                                mode         = 0)
 
     return response
 
@@ -57,80 +57,108 @@ def interact_with_dm():
 @game_routes.route('/select', methods=['GET'])
 def select_task():
     data = request.json
-    task_response, task_bg = bs.select_task(player_name=data["role"], task_name=data["task_name"])
-
-    return task_response, task_bg
-
+    # What happens when the player selects a task?
+    task_response = bs.selectTask(player_name = data["role"], 
+                                task_name     = data["task_name"])
+    return task_response
 
 @game_routes.route('/feedback', methods=['GET'])
 def interact_with_task():
     data = request.json
-    # TODO judge and task is not accordant.
-    # TODO bs do not make the rewards...
-    print('[server]', task_response)
-    task_response = bs.get_player_input(player_name=data["role"], player_input=data["text"], mode=1,
-                                        roles=data["roles"], equipment=data["items"], skill=data["skills"])
+    task_response = \
+    bs.getPlayerInput(player_name    = data["role"],
+                    player_input = data["text"],
+                    mode         = 1,
+                    roles        = data["roles"],
+                    equipment    = data["items"],
+                    skill        = data["skills"])
+
     return task_response
 
 
 @game_routes.route('/task_info', methods=['GET'])
 def get_all_tasks():
     data = request.json
-    response = bs.get_all_available_tasks(data["role"])
-
-    return {'task_list': response}
+    response = bs.getAllAvailableTasks()
+    return jsonify({'task_list': response})
 
 
 @game_routes.route('/status', methods=['GET'])
 def get_player_info():
     data = request.json
-    response = bs.get_player_info(data["role"])
-
-    return {'attribute': response}
+    # well that's...
+    response = bs.getPlayerInfo(data["role"])
+    return jsonify({'attribute': response})
 
 
 @game_routes.route('/bag', methods=['GET'])
 def get_player_bag():
     data = request.json
-    return {"equipments": bs.player_dict[data['role']].bag}
+    return jsonify({"equipments": bs.player_dict[data['role']].bag})
 
 
 @game_routes.route('/skill', methods=['GET'])
 def get_player_skill():
     data = request.json
-    return {"skills": bs.player_dict[data['role']].skills}
+    return jsonify({"skills": bs.player_dict[data['role']].skills})
 
 
 @game_routes.route('/merge', methods=['GET'])
 def get_an_item():
     data = request.json
-    response = bs.craft_items(player_name=data["role"], mode=data["mode"], num=data["num"], description=data["des"])
+    response = bs.craftItems(player_name = data["role"], 
+                            mode         = data["mode"],
+                            num          = data["num"],
+                            description  = data["des"])
 
-    return {'text': response}
-
+    return jsonify({'text': response})
 
 @game_routes.route('/task_request', methods=['GET'])
 def customize_a_task():
     data = request.json
-    response = bs.task_customize(player_name=data["role"], description=data["text"])
+    response = bs.taskCustomize(player_name = data["role"], 
+                                description = data["text"])
 
-    return {'text': response}
+    return jsonify({'text': response})
 
 
 @game_routes.route('/task_info_personal', methods=['GET'])
 def get_all_customized_tasks():
     data = request.json
-    response = bs.get_all_available_personal_tasks(data["role"])
+    response = bs.getAllAvailablePersonalTasks(data["role"])
 
-    return {'task_list': response}
+    return jsonify({'task_list': response})
 
-
+# ! This changed.
 @game_routes.route('/select_personal', methods=['GET'])
 def select_customized_task():
     data = request.json
-    task_response, task_bg = bs.select_personal_task(player_name=data["role"], task_name=data["task_name"])
+    task_response, task_bg = bs.selectPersonalTask(player_name=data["role"], task_name=data["task_name"])
 
-    return task_response, task_bg
+    return task_response
+
+@game_routes.route('/battle', methods=['GET'])
+def battle_with_player():
+    """
+    
+    We provide the data as:
+    {
+        "role": "player_name",
+        "action": "description"
+    }
+
+    The expected outcome as:
+    {
+        "role": "oppoment_name", 对手用户名
+        "action": "description", 对手的行为描述
+        "result": "description"  系统对战斗行为的描述。
+    }
+    """
+    data = request.json
+
+    return jsonify({'role': '',
+                    'action': '',
+                    'result': ''})
 
 
 # TODO: save and load.
