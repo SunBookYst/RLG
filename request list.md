@@ -15,8 +15,8 @@ Request List
 - 接受挑战 {"role":str,'id':str},id表示对战的id，系统返回{'status_code':int},状态码200表示正常发出（意外情况，接受挑战之前被挑战者就下线了）
 - 拒绝挑战{"role":str,'id':str},id表示对战的id，系统返回{'status_code':int}，状态码200表示正常发出
 - 玩家客户端接收信息路由/challenge_info，其中ip信息随登录信息一起发送，可能会随每次登陆而不同，因此服务器需要在玩家登陆后更新这一信息, 期待服务器发送格式{'id':str,'role':str，'image_data':str},其中id为服务器生成的本次挑战的id，与返回给挑战发起者的一样，role为挑战发起者,image_data为挑战发起者的头像。返回服务器格式{'status':bool,'id':str,'image_data':base64},status为是否接受此次挑战，id为本次挑战的ip，image_data为被挑战者的头像
-- 对战中对话 {"role":str,"id":str,'text':str,'items':[],'skills':[]}:,id为本次对战id，其余内容和任务对话格式一样 路由为/battle
-- 获取在线玩家列表 {'role':str},发送用户名；返回{"roles":[str,str,...]}返回用户列表
+- 对战中对话 {"role":str,"id":str,'text':str,'items':[],'skills':[]},id为本次对战id; 返回{'role':str,'action':str,'result':str},action为对方动作，result为系统判定结果 路由为/battle
+- 获取在线玩家列表 {'role':str},发送用户名；返回{"roles":[str,str,...]}返回用户列表 路由/get_list
 
 # 一些可能出现的状况，被挑战者接受挑战之前挑战者就下线了
 
