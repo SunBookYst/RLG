@@ -4,6 +4,8 @@ import re
 
 import streamlit as st
 import hashlib
+import socket
+import subprocess
 
 from util.constant import FLASK_SERVER
 
@@ -67,7 +69,26 @@ def parse_message(message):
         return match.group(1), match.group(2)
     else:
         return "系统", message
-    
+def get_local_ip():
+    if '_self_ip' not in st.session_state:
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        st.session_state['_self_ip'] = str(local_ip)
+    return st.session_state['_self_ip']
+
+def get_local_port():
+    if '_self_port' not in st.session_state():
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(('', 0))
+        port = sock.getsockname()[1]
+        sock.close()
+        st.session_state['_self_port'] = str(port)
+    return st.session_state['_self_port']
+
+def start_flask_server(port):
+    server_process = subprocess.Popen(["python", "flask_server.py", get_local_port()])
+    return server_process
+
 ip, port = FLASK_SERVER
 
 if ip == "0.0.0.0":

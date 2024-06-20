@@ -75,7 +75,7 @@ def show_login_page():
 
         if login_button and email and password :
             func = 'login'
-            r = requests.get(url = url+func, json = {'email':email,'password':md5_encrypt(password)})
+            r = requests.get(url = url+func, json = {'email':email,'password':md5_encrypt(password),'ip':get_local_ip()+":"+get_local_port()})
             # r = json.loads(r.text)
             try:
                 r = json.loads(r.text)
@@ -115,7 +115,7 @@ def show_signup_page():
             #TODO 发送请求判断判断是否可以注册，否则xxx，待完善后台逻辑
             # try:
             func = 'signup'
-            r = requests.get(url = url+func, json = {'email':email,'username':username,'password':md5_encrypt(password)})
+            r = requests.get(url = url+func, json = {'email':email,'username':username,'password':md5_encrypt(password),'ip':get_local_ip()+":"+get_local_port()})
             r = json.loads(r.text)
             if r['status_code']==200:
                 st.session_state['waiting'] = True
