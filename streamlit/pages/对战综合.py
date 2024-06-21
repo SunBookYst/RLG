@@ -10,7 +10,10 @@ if "challenage_over" not in st.session_state:
 def battle_with_other(user_input):
     response = requests.get( url + 'battle', json = {
         'role': st.session_state["username"],
-        'action': user_input
+        'action': user_input,
+        'id':st.session_state.battle_id,
+        'items':[],
+        'skills':[],
     })
     if response.status_code == 200:
         response = response.json()
@@ -87,13 +90,14 @@ else:
         # check_tasks()
         if st.button("查看挑战请求"):
             st.session_state.condition_cha = 1
+            st.rerun()
         if len(st.session_state['online_roles']) == 0:
             st.write("暂无其他在线用户")
         else:
             for role in st.session_state['online_roles']:
                 if st.button(role):
                     #发起挑战
-                    r = requests.get(url=url+"/challenge",json = {'role1':st.session_state['username'],'role2':role,'image_data':None})
+                    r = requests.get(url=url+"challenge",json = {'role1':st.session_state['username'],'role2':role,'image_data':None})
                     r = r.json()
                     if r["status_code"] == 200:
                         st.write("发起成功")
@@ -132,14 +136,17 @@ else:
                     except Exception as e:
                         print(e)
 
-    # elif st.session_state.condition_cha == 2:
-        # render_battle_history() #其余内容暂时放入utils内
+    elif st.session_state.condition_cha == 2:
+        render_battle_history() #其余内容暂时放入utils内
+        # time.sleep(5)
+        # st.rerun()
 
 while True:
-    if st.session_state.condition_cha == 2:
-        render_battle_history()
+    # if st.session_state.condition_cha == 2:
+        # render_battle_history()
     if st.session_state["logged_in"]:
         refresh(st.session_state["username"])
     time.sleep(5)
+    st.rerun()
 
 

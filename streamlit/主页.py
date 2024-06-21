@@ -77,16 +77,16 @@ def show_login_page():
             func = 'login'
             r = requests.get(url = url+func, json = {'email':email,'password':md5_encrypt(password),'ip':get_local_ip()+":"+get_local_port()})
             # r = json.loads(r.text)
-            try:
-                r = json.loads(r.text)
-                if r['status_code']==200:
-                    st.session_state['waiting'] = True
-                    st.session_state['username'] = r['username']
-                    st.rerun()
-                else:
-                    st.write(f"登录出错，请检查，错误码是{r['status_code']}")
-            except:
-                st.write("与服务器的连接出错")
+            # try:
+            r = json.loads(r.text)
+            if r['status_code']==200:
+                st.session_state['waiting'] = True
+                st.session_state['username'] = r['username']
+                st.rerun()
+            else:
+                st.write(f"登录出错，请检查，错误码是{r['status_code']}")
+            # except:
+                # st.write("与服务器的连接出错")
             # TODO 发送请求判断用户名与密码对应，待完善后台逻辑
             # st.session_state['waiting'] = True
             # st.session_state['username'] = username

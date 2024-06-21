@@ -116,6 +116,8 @@ def refresh(role):
     st.session_state.id_list = r['id_list']
     st.session_state.role_list = r['role_list']
     st.session_state.accept_id = r['accept_id']
+    print(st.session_state.id_list)
+    print(st.session_state.role_list)
     print(st.session_state.accept_id)
     if len(st.session_state.accept_id)>0:
         st.session_state.condition_cha = 2
@@ -182,7 +184,6 @@ fake_dailoge = [
 ]
 
 battle_attributes = {
-    "logged_in"     : False,
     "waiting"       : False,
     "Generating"    : False,
     "battle_history": fake_dailoge,
