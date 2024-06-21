@@ -49,12 +49,12 @@ def render_battle_history():
     for message in st.session_state["battle_history"]:
         name, action = message["role"], message["text"]
 
-        if name == 'Player1':
+        if name == st.session_state['username']:
             components.html(
                 html_local_player.format(content = action, avatar_base64 = avatar_base64),
                 height=50
             )
-        elif name == 'Player2':
+        elif name != "System":
             components.html(
                 html_remote_player.format(content = action, avatar_base64 = avatar_base64),
                 height=50
