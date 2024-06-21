@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 import time
 import threading
@@ -7,16 +7,15 @@ import pickle
 import json
 import os
 
+
 import concurrent.futures
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
-sys.path.insert(0, parent_dir_path)
+sys.path.append('..')
 
 # from subsenario.utils import initialize_llm
 from request import LLMAPI, StableDiffusion
 
-from util.constant import INITIAL_DRAGON_EYE,INITIAL_PHONEIX_FEATURE,INITIAL_EXPERIENCE
+from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE
 from util.constant import TASK_DISTRIBUTION
 
 from util.prompt import TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PROMPT
@@ -25,13 +24,18 @@ from util.prompt import DM_PROMPT
 
 from util.prompt import JUDGE_PROMPT, ACT_PROMPT
 
+from util.prompt import BATTLE_PROMPT
+
 
 DEBUG = True
+lock = threading.Lock()
+
 
 def debug_print(*args):
     if DEBUG:
         for a in args:
             print(a)
+
 
 def fixResponse(origin_text: str, attr: str):
     """
@@ -58,6 +62,7 @@ def fixResponse(origin_text: str, attr: str):
 
         return text
 
+
 def initialize_llm(prompt, type="KIMI-server"):
     """
     instantiate the LLMAPI class.
@@ -73,6 +78,7 @@ def initialize_llm(prompt, type="KIMI-server"):
     model = LLMAPI(model_name = type)
     intro = model.generateResponse(prompt, stream = True)
     return model
+
 
 def read_file(prompt_name):
     """
@@ -123,10 +129,13 @@ class Player(object):
     """
 
     def __init__(self, 
-                name: str, 
-                email: str, 
-                password: str, 
-                DM_model: LLMAPI):
+                 name: str,
+                 email: str,
+                 password: str,
+                 DM_model: LLMAPI,
+                 eg_model: LLMAPI,
+                 sg_model: LLMAPI,
+                 tc_model: LLMAPI):
         
         self.name    : str = name
         self.email   : str = email
@@ -139,16 +148,24 @@ class Player(object):
         }
 
         # The DM assigned.
-        self.dm_model      : LLMAPI  = DM_model
+        self.dm_model           : LLMAPI = DM_model
+        self.equipment_generator: LLMAPI = eg_model
+        self.skill_generator    : LLMAPI = sg_model
+        self.task_custom        : LLMAPI = tc_model
+
         self.task_director : LLMAPI  = None
         self.task_judge    : LLMAPI = None
         self.task_focus    : bool   = False
         self.current_task  : str    = None
+        self.current_opponent: str  = None
 
         # 玩家的个性化任务
         self.personal_task_queue: dict = {}
         self.bag                : dict = {}
         self.skills             : dict = {}
+
+        # PVP
+        self.challenge_queue: dict = {}
 
     def takeTask(self, 
                 task_director: LLMAPI,
@@ -266,6 +283,7 @@ class Player(object):
 
         return judge, play
 
+
     def getReward(self, rewards:dict):
         """
         Update the player's property based on the rewards.
@@ -330,6 +348,46 @@ class Player(object):
         return result
 
 
+class Battle(object):
+    def __init__(self, player1, player2, player1_role, player2_role, battle_id):
+        self.battle_id: str = battle_id
+        self.status: int = 0  # 0：等待接受，1：开打，2：已拒绝， 3：接受过
+        self.sys: LLMAPI = None
+        self.challenger: str = player1  # 发起者
+        self.target: str = player2  # 被挑战者
+        self.pair: dict = {player1: player2, player2: player1}
+        self.challenger_role: Player = player1_role
+        self.target_role: Player = player2_role
+        self.last_round: dict = {self.challenger: 0, self.target: 0, 'details': {self.challenger: None, self.target: None, 'sys': None}}
+        self.now_round: dict = {}
+        self.record: dict = {player1: 0, player2: 0}
+
+    def directFight(self, player):
+        print("directing...")
+        # player是指触发该方法的player
+        details = {
+            self.challenger: {
+                "action": self.now_round['details'][self.challenger]['action'],
+                "status": self.now_round['details'][self.challenger]['status'],
+            },
+            self.target: {
+                "action": self.now_round['details'][self.target]['action'],
+                "status": self.now_round['details'][self.target]['status'],
+            },
+        }
+        content = json.dumps(details, ensure_ascii=False)
+        res = self.sys.generateResponse(content)
+        print(res)
+
+        with lock:
+            self.last_round = self.now_round
+            self.last_round['details']['sys'] = res["description"]
+            self.last_round[player] = 1  # 已阅
+            self.last_round[self.pair[player]] = 0  # 未读
+            self.now_round = {}
+        return json.loads(res)
+
+
 class BackEndSystem(object):
     """
     The backend system of the game, mainly maintain the critical information of the game.
@@ -362,14 +420,8 @@ class BackEndSystem(object):
         Args:
             one_day_length_minutes (int, optional): How long a day in the game in minutes. Defaults to 40.
         """
-
-        # task_prompt = read_file("task")
-        # eq_prompt = read_file('equipment_craft')
-        # sk_prompt = read_file('skill_generate')
-        # custom_prompt = read_file('task_custom')
-
-
         # ? For what reason?
+        #　Ａ：一个用来登陆一个用来玩
         # 以用户名为键值
         self.player_dict: dict[str:Player] = {}
         # 以邮箱为键值
@@ -378,34 +430,18 @@ class BackEndSystem(object):
         self.online_player: dict[str:Player] = {}
 
         # 各组件初始化
-
-        def instantiate_llm(prompt:str, variable_name:str):
-            return {variable_name: initialize_llm(prompt)}
-        
-        # with concurrent.futures.ProcessPoolExecutor(max_workers = 4) as executor:
-
-        #     futures = []
-        #     futures.append(executor.submit(instantiate_llm, TASK_PROMPT, "task_generator"))
-        #     futures.append(executor.submit(instantiate_llm, EQUIPMENT_PROMPT, "equipment_generator"))
-        #     futures.append(executor.submit(instantiate_llm, SKILL_PROMPT, "skill_generator"))
-        #     futures.append(executor.submit(instantiate_llm, CUSTOM_PROMPT, "task_custom"))
-
-        #     for future in concurrent.futures.as_completed(futures):
-        #         result = future.result()
-        #         self.__dict__.update(result)
-
-        self.task_generator     : LLMAPI = initialize_llm(TASK_PROMPT)
-        self.equipment_generator: LLMAPI = initialize_llm(EQUIPMENT_PROMPT)
-        self.skill_generator    : LLMAPI = initialize_llm(SKILL_PROMPT)
-        self.task_custom        : LLMAPI = initialize_llm(CUSTOM_PROMPT)
+        self.task_generator: LLMAPI = initialize_llm(TASK_PROMPT)
 
         # Why doing so?
+        # sd内部有llm
         self.sd: StableDiffusion = StableDiffusion()
         self.sd.initialize()
 
         # 任务队列
         self.task_queue = {}
 
+        # 战斗队列
+        self.battle_queue = {}
 
     def registerPlayer(self, name, email, password):
         """
@@ -422,19 +458,24 @@ class BackEndSystem(object):
         Returns:
             bool: True if the registration is successful.
         """
-        # ? What?
+        # 用户名和邮箱不得重复
         if name in self.player_dict:
             return False
         if email in self.player_dict2:
             return False
 
         dm_model  : LLMAPI = initialize_llm(DM_PROMPT)
-        new_player: Player  = Player(name, email, password, dm_model)
+        equipment_generator: LLMAPI = initialize_llm(EQUIPMENT_PROMPT)
+        skill_generator: LLMAPI = initialize_llm(SKILL_PROMPT)
+        task_custom: LLMAPI = initialize_llm(CUSTOM_PROMPT)
 
-        # regist the user in the list.
-        self.player_dict[name]   = new_player
-        self.player_dict2[email] = new_player
-        self.online_player[name] = new_player
+        new_player: Player = Player(name, email, password, dm_model, equipment_generator, skill_generator, task_custom)
+
+        with lock:
+            # regist the user in the list.
+            self.player_dict[name] = new_player
+            self.player_dict2[email] = new_player
+            self.online_player[name] = new_player
 
         return True
 
@@ -452,12 +493,14 @@ class BackEndSystem(object):
         """
         if email not in self.player_dict2.keys():
             return None
-        
+
         player: Player = self.player_dict2[email]
 
         if password != player.password:
             return None
         else:
+            with lock:
+                self.online_player[player.name] = datetime.now()
             return player.name
 
     def refreshTaskQueue(self, num=3):
@@ -519,22 +562,23 @@ class BackEndSystem(object):
         Returns:
             dict: the customized task information.
         """
+        player: Player = self.player_dict[player_name]
+
         need = f"【玩家】帮我生成一个任务， 要求是{description}"
-        task = self.task_custom.generateResponse(need)
+        task = player.task_custom.generateResponse(need)
         task = json.loads(task)
 
-        player: Player = self.player_dict[player_name]
         player.personal_task_queue[task['task_name']] = task
-        # return for what...
-        return task
+
+        return 200
 
     def getPlayerInput(self, 
-                        player_name : str,
-                        player_input: str,
-                        mode        : int,
-                        equipment   : list = [],
-                        skill       : list = [],
-                        roles       : list = []): 
+                       player_name : str,
+                       player_input: str,
+                       mode        : int,
+                       equipment   : list = [],
+                       skill       : list = [],
+                       roles       : list = []):
         """
         Get the player input and return the response from the system, including the dm and the director.
 
@@ -576,7 +620,6 @@ class BackEndSystem(object):
                     debug_print("generating img...")
                     description = f"【场景】{play['text']}\n【需要描绘的角色】{play['role']}"
                     img = self.sd.standard_workflow(description, 1)
-                    # img = None
                     play["image_data"] = img
 
                 # 游戏结束，进入结算
@@ -595,11 +638,12 @@ class BackEndSystem(object):
 
                 return play
 
-    def selectTask(self, player_name: str, task_name: str):
+    def selectTask(self, player_name: str, task_name: str, mode: int):
         """
         Args:
             player_name (str): the player's name who chose the task.
             task_name (str): the task's name which is chosen.
+            mode (int): public task(0) or personal task(1)
 
         ? How can you know this task is now yours? Weird.
 
@@ -609,23 +653,21 @@ class BackEndSystem(object):
         Raises:
             ValueError: when the task is not avaliable.
         """
-
         debug_print(player_name, task_name)
-        task = self.task_queue[task_name]
-        # ? json.loads(task)
+        player: Player = self.player_dict[player_name]
+
+        match mode:
+            case 0:
+                task = self.task_queue[task_name]
+            case 1:
+                task = player.personal_task_queue[task_name]
+
         play = str(task)
-
         task_img = self.sd.standard_workflow(play, 2)
-        # task_img = None
 
-        # if task["occupied"] == False:
-        #     raise ValueError("This task is not available now")
-
-        task["occupied"] = True
-        task["player"] = player_name
-
-        # judge_prompt = read_file("judge")
-        # act_prompt = read_file("task_acting")
+        with lock:
+            task["occupied"] = True
+            task["player"] = player_name
 
         judge        : LLMAPI = initialize_llm(JUDGE_PROMPT)
         task_director: LLMAPI = initialize_llm(ACT_PROMPT)
@@ -636,49 +678,10 @@ class BackEndSystem(object):
 
         debug_print('start>', initial_scene)
 
-        player: Player = self.player_dict[player_name]
         player.takeTask(task_director, judge, task_name)
 
         return initial_scene
 
-    def selectPersonalTask(self, player_name: str, task_name: str):
-        """
-        Args:
-            player_name (str):
-            task_name (str):
-
-        Returns:
-            bool: if the user selected the task.
-
-        TODO This with the above might combine to one function.
-        """
-
-        debug_print(player_name, task_name)
-        player: Player = self.player_dict[player_name]
-        task = player.personal_task_queue[task_name]
-        play = str(task)
-
-        if task["occupied"] == False:
-            raise ValueError("This task is not available now")
-        
-        task_img = self.sd.standard_workflow(play, 2)
-        # task_img = None
-
-        task["occupied"] = True
-        task["player"] = player_name
-
-        judge        : LLMAPI = initialize_llm(JUDGE_PROMPT)
-        task_director: LLMAPI = initialize_llm(ACT_PROMPT)
-
-        initial_scene: str = task_director.generateResponse(play)
-        initial_scene = json.loads(initial_scene)
-        initial_scene['image_data'] = task_img
-
-        player: Player = self.player_dict[player_name]
-        player.takeTask(task_director, judge, task_name)
-
-        return initial_scene
-        
     def getPlayerInfo(self, name):
         """
         To be exact, this returns the propoerty of the player.
@@ -726,7 +729,7 @@ class BackEndSystem(object):
                 return "您的凤羽储量不足，请不要为难我，勇士！"
             
             request = f"{player_name}想要制作{description}的装备，对此玩家愿意投入 {num} 凤羽"
-            response = self.equipment_generator.generateResponse(request)
+            response = player.equipment_generator.generateResponse(request)
 
             debug_print(response)
 
@@ -742,7 +745,7 @@ class BackEndSystem(object):
                 return "您的龙眼储量不足，请不要为难我，勇士！"
             
             request = f"【请求之人】{player_name} 需要一个{description}的技能，对此我愿意投入{num}个龙眼。"
-            response = self.skill_generator.generateResponse(request)
+            response = player.skill_generator.generateResponse(request)
 
             debug_print(response)
 
@@ -797,10 +800,121 @@ class BackEndSystem(object):
 
         pass
 
+    def createBattle(self, player1, player2):
+        battle_id = player1+player2
+        player_role1: Player = self.player_dict[player1]
+        player_role2: Player = self.player_dict[player2]
+        new_battle: Battle = Battle(player1, player2, player_role1, player_role2, battle_id)
+        with lock:
+            self.battle_queue[battle_id] = new_battle
 
-# ! depracated soon. Didn't review.
+        player_role1: Player = self.player_dict[player1]
+        player_role2: Player = self.player_dict[player2]
+
+        player_role1.challenge_queue[battle_id] = {
+            'challenger': player1,
+            'target': player2,
+            'status': 0
+        }
+        player_role2.challenge_queue[battle_id] = {
+            'challenger': player1,
+            'target': player2,
+            'status': 0
+        }
+        return battle_id
+
+    def acceptBattle(self, player, battle_id):
+        battle_sys: LLMAPI = initialize_llm(BATTLE_PROMPT)
+        battle: Battle = self.battle_queue[battle_id]
+        with lock:
+            battle.status = 1
+            battle.sys = battle_sys
+
+        battle.challenger_role.challenge_queue[battle_id]['status'] = 1
+        battle.target_role.challenge_queue[battle_id]['status'] = 1
+
+        return 200
+
+    def rejectBattle(self, player, battle_id):
+        battle: Battle = self.battle_queue[battle_id]
+        with lock:
+            battle.status = 2
+            self.battle_queue.pop(battle_id)
+
+        battle.challenger_role.challenge_queue.pop(battle_id)
+        battle.target_role.challenge_queue.pop(battle_id)
+        return 200
+
+    def playerBattle(self, battle_id: str, player: str, player_input: str, equipment: list, skill: list):
+        player_role: Player = self.player_dict[player]
+        battle: Battle = self.battle_queue[battle_id]
+        battle_status = False
+        if not battle:
+            return None, "无效的战斗ID", "无法找到该战斗"
+
+        status = player_role.organizePlayerUse(equipment, skill)
+
+        with lock:
+            print(f"player{}")
+            battle.now_round['details'] = {}
+            battle.now_round['details'][player] = {'action': player_input, 'status': status}
+
+            opponent = battle.pair[player]
+
+            if opponent in battle.now_round['details']:
+                fight = battle.now_round['details']
+                res = battle.directFight(player)
+                if res['judge'] != "平局":
+                    battle.record[res['judge']] += 1
+
+                if battle.record[opponent] == 5 or battle.record[player] == 5:
+                    battle_status = True
+
+                return opponent, fight[opponent], res["description"], battle_status
+
+            return opponent, "对手正在出招", "请耐心等待对手", battle_status
+
+    def get_all_online_player(self):
+        return list(self.online_player.keys())
+
+    def online_confirm(self, player: str):
+        with lock:
+            self.online_player[player] = datetime.now()
+
+    def getChallengeList(self, player: str):
+        player_role: Player = self.player_dict[player]
+        # 别人挑战我
+        id_list = []
+        role_list = []
+
+        # 我挑战别人
+        accept_id = []
+        for battle_id, battle_info in player_role.challenge_queue.items():
+            if battle_info['target'] == player:
+                id_list.append(battle_id)
+                role_list.append(battle_info['challenger'])
+
+            if battle_info['status'] == 1 and battle_info['challenger'] == player:
+                player_role.challenge_queue[battle_id]['status'] = 3  # 已经接受过
+                accept_id.append(battle_id)
+
+        return id_list, role_list, accept_id
+
+    def getBattleInfo(self, player: str, battle_id: str):
+        battle: Battle = self.battle_queue[battle_id]
+        status = False
+        if battle.record[player] == 5 or battle.record[battle.pair[player]] == 5:
+            status = True
+        if battle.last_round[player] == 0:
+            battle.last_round[player] = 1
+            return battle.pair[player], battle.last_round['details'][battle.pair[player]], battle.last_round['details']['sys'], status
+        else:
+            return None, None, None, status
+
+
+# 负责管理后台系统
 class MultiThreadManager:
-    def __init__(self, backend_sys: BackEndSystem, check_interval=600):
+    def __init__(self, backend_sys: BackEndSystem, check_interval=10):
         self.backend_sys = backend_sys
         self.check_interval = check_interval
 
@@ -813,9 +927,19 @@ class MultiThreadManager:
         self.threads.append(monitor_thread)
 
         # 创建并启动玩家信息保存线程
-        player_thread = threading.Thread(target=self.save_player_info)
-        player_thread.start()
-        self.threads.append(player_thread)
+        player_info_thread = threading.Thread(target=self.save_player_info)
+        player_info_thread.start()
+        self.threads.append(player_info_thread)
+
+        # 创建玩家离线线程
+        player_offline_thread = threading.Thread(target=self.clear_offline_players)
+        player_offline_thread.start()
+        self.threads.append(player_offline_thread)
+
+        # 创建并启动战斗队列管理线程
+        battle_clear_thread = threading.Thread(target=self.clear_rejected_battle)
+        battle_clear_thread.start()
+        self.threads.append(battle_clear_thread)
 
     # 每隔600秒检查一次任务队列，如果小于3就会自动补充
     def refresh_task_queue(self, max_size=3):
@@ -825,23 +949,53 @@ class MultiThreadManager:
                 new_task_num = max_size - existed_task_num
                 self.backend_sys.refreshTaskQueue(new_task_num)
                 print(f"队列大小少于{max_size}，已添加{new_task_num}个元素。当前队列大小：{len(self.backend_sys.task_queue)}")
-            time.sleep(self.check_interval)
+            time.sleep(600)
 
     def save_player_info(self):
+
         while self.running:
+            print('start saving...')
+            if not os.path.isdir('./saves'):
+                os.makedirs('./saves')
             for name, info in self.backend_sys.online_player.items():
-                
-                if not os.path.isdir('./saves'):
-                    os.makedirs('./saves')
                 filename = f'./saves/{name}.pkl'
                 with open(filename, 'wb') as file:
-                    pickle.dump(info, file)
-            time.sleep(self.check_interval)
+                    pickle.dump(self.backend_sys.player_dict[name], file)
+            print('saving over.')
+            time.sleep(300)
+
+    def clear_offline_players(self):
+        while self.running:
+            print('start clearing...')
+            online_players = list(self.backend_sys.online_player.keys())
+            time_now = datetime.now()
+            for name in online_players:
+                if time_now - self.backend_sys.online_player[name] > timedelta(seconds=10):
+                    # 登出并保存信息
+                    with lock:
+                        last_time = self.backend_sys.online_player.pop(name)
+                    if not os.path.isdir('./saves'):
+                        os.makedirs('./saves')
+                    filename = f'./saves/{name}.pkl'
+                    with open(filename, 'wb') as file:
+                        pickle.dump(self.backend_sys.player_dict[name], file)
+                    print(f"player {name} is offline. last login: {last_time}")
+            print('clear over.')
+            time.sleep(10)
+
+    def clear_rejected_battle(self):
+        while self.running:
+            existing_battle = list(self.backend_sys.battle_queue.keys())
+            for battle_id in existing_battle:
+                if self.backend_sys.battle_queue[battle_id].status == 0:
+                    moved_battle = self.backend_sys.battle_queue.pop(battle_id)
+                    moved_battle.challenger_role.challenge_queue.pop(battle_id)
+                    moved_battle.target_role.challenge_queue.pop(battle_id)
+                    print(f"移除了战斗{battle_id}: {moved_battle}")
+
+            time.sleep(60)
 
     def stop(self):
         self.running = False
         for thread in self.threads:
             thread.join()
-
-
-
