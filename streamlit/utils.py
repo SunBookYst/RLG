@@ -95,7 +95,9 @@ def start_flask_server(port):
     server_process = subprocess.Popen(["python", "flask_server.py", get_local_port()])
     return server_process
 
-ip, port = FLASK_SERVER
+# ip, port = FLASK_SERVER
+ip = "10.43.104.129"
+port = "5000"
 
 if ip == "0.0.0.0":
     ip = "127.0.0.1"
@@ -105,15 +107,47 @@ ST_PATH = os.path.split(os.path.realpath(__file__))[0]
 
 def refresh(role):
     # pass
-    r = requests.get(url=url+"/refresh",json={'role':role})
+    if "battle_id" not in st.session_state:
+        battle_id = None
+    else:
+        battle_id = st.session_state.battle_id 
+    r = requests.get(url=url+"/refresh",json={'role':role,"battle_id":battle_id})
     r = r.json()
     st.session_state.id_list = r['id_list']
     st.session_state.role_list = r['role_list']
     st.session_state.accept_id = r['accept_id']
-    if any(st.session_state.accept_id):
+    if len(st.session_state.accept_id)>0:
         st.session_state.condition_cha = 2
+        st.session_state.battle_id = st.session_state.accept_id[0]
+        st.session_state.battle_history = []
     if len(st.session_state.id_list)>0:
         st.sidebar.markdown(f"### Challenge Info 🔴")
+    if r['role']!=None:
+        st.session_state.battle_history.append({'role':r['role'],"text":r["role_text"]})
+        st.session_state.battle_history.append({'role':"System","text":r["system_text"]})
+
+
+
+def check_init_state(attributes:dict):
+    """
+    
+    For a more controllable, understandable way to make initialization.
+
+    Args:
+        attributes (dict{str:Any}): the attributes used in the st.
+
+    Return:
+        None.
+
+    Raises:
+        ValueError: If the key is not a string.
+    """
+
+    for key,value in attributes.items():
+        if type(key) != str:
+            raise KeyError("Invalid attribution settings.")
+        if key not in st.session_state:
+            st.session_state[key] = value
 
 fake_dailoge = [
     {
@@ -149,6 +183,8 @@ battle_attributes = {
     "battle_history": fake_dailoge,
     "username": "ADMIN"
 }
+
+
 
 check_init_state(battle_attributes)
 

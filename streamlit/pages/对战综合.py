@@ -4,26 +4,6 @@ import streamlit.components.v1 as components
 
 from utils import *
 
-def check_init_state(attributes:dict):
-    """
-    
-    For a more controllable, understandable way to make initialization.
-
-    Args:
-        attributes (dict{str:Any}): the attributes used in the st.
-
-    Return:
-        None.
-
-    Raises:
-        ValueError: If the key is not a string.
-    """
-
-    for key,value in attributes.items():
-        if type(key) != str:
-            raise KeyError("Invalid attribution settings.")
-        if key not in st.session_state:
-            st.session_state[key] = value
 
 def battle_with_other(user_input):
     response = requests.get( url + 'battle', json = {
@@ -47,6 +27,10 @@ def battle_with_other(user_input):
                 "text": response["result"]
             }
         ]
+        try:
+            assert response['status_code']==200
+        except Exception as e:
+            print(e)
         st.session_state["battle_history"] += round
 
 def render_battle_history():
@@ -105,7 +89,7 @@ else:
                     if r["status_code"] == 200:
                         st.write("发起成功")
                     else:
-                        st.write(f"错误码{r["status_code"]}")
+                        st.write(f"错误码{r['status_code']}")
                     # st.rerun()
     elif st.session_state.condition_cha == 1:
         st.write("挑战请求")
@@ -121,6 +105,8 @@ else:
                         r = r.json()
                         if r["status_code"]==200:
                             st.session_state["condition_cha"] = 2 #转入对话页面
+                            st.session_state["battle_id"] = st.session_state["id_list"][idx]
+                            st.session_state["battle_history"] = []
                     except Exception as e:
                         print(e)
 
