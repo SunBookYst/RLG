@@ -110,21 +110,26 @@ def refresh(role):
     if "battle_id" not in st.session_state:
         battle_id = None
     else:
-        battle_id = st.session_state.battle_id 
+        battle_id = st.session_state.battle_id
     r = requests.get(url=url+"/refresh",json={'role':role,"battle_id":battle_id})
     r = r.json()
     st.session_state.id_list = r['id_list']
     st.session_state.role_list = r['role_list']
     st.session_state.accept_id = r['accept_id']
+    print(st.session_state.accept_id)
     if len(st.session_state.accept_id)>0:
         st.session_state.condition_cha = 2
         st.session_state.battle_id = st.session_state.accept_id[0]
         st.session_state.battle_history = []
-    if len(st.session_state.id_list)>0:
-        st.sidebar.markdown(f"### Challenge Info 🔴")
+    #TODO st.empty()
+    # with 
+    # if len(st.session_state.id_list)>0:
+        # st.sidebar.markdown(f"### Challenge 🔴")
     if r['role']!=None:
         st.session_state.battle_history.append({'role':r['role'],"text":r["role_text"]})
         st.session_state.battle_history.append({'role':"System","text":r["system_text"]})
+    if r['status'] == True:
+        st.session_state.challenage_over = True
 
 
 
