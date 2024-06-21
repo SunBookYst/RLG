@@ -65,12 +65,12 @@ if not st.session_state['logged_in']:
     st.write("尊敬的勇士，请先表明身份！")
     st.page_link("主页.py", label="Go to login")
 else:
-    try:
-        r = requests.get(url = url+"get_list", json={"role":st.session_state["role"]})
-        r = r.json()
-        st.session_state["online_roles"] = r["roles"]
-    except:
-        st.session_state["online_roles"] = []
+    # try:
+    r = requests.get(url = url+"get_list", json={"role":st.session_state["username"]})
+    r = r.json()
+    st.session_state["online_roles"] = r["roles"]
+    # except:
+        # st.session_state["online_roles"] = []
 
     if st.session_state.condition_cha == 0:
         st.title('Tasks')
@@ -93,6 +93,9 @@ else:
                     # st.rerun()
     elif st.session_state.condition_cha == 1:
         st.write("挑战请求")
+
+        if st.button("返回在线列表"):
+            st.session_state.condition_cha = 0
         col1, col2, col3 = st.columns([2, 1, 1])
         for idx,name in enumerate(st.session_state["role_list"]):
             with col1:

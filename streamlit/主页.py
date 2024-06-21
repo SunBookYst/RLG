@@ -17,6 +17,8 @@ if 'sign_up' not in st.session_state:
     st.session_state['sign_up'] = False
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
+if 'condition_cha' not in st.session_state:
+    st.session_state["condition_cha"] = 0
 
 def login():
     """
