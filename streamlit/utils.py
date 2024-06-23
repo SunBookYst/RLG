@@ -8,6 +8,8 @@ import socket
 import subprocess
 import sys
 import requests
+import streamlit.components.v1 as components
+import random
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
@@ -130,10 +132,140 @@ def refresh(role):
     if r['role']!=None:
         st.session_state.battle_history.append({'role':r['role'],"text":r["role_text"]})
         st.session_state.battle_history.append({'role':"System","text":r["system_text"]})
+        print(st.session_state.battle_history)
     if r['status'] == True:
         st.session_state.challenage_over = True
 
+def play_music():
+    # 定义多个音频文件的 URL 列表
+    audio_files = [
+        'https://www.example.com/path/to/your/audiofile1.mp3',
+        'https://www.example.com/path/to/your/audiofile2.mp3',
+        'https://www.example.com/path/to/your/audiofile3.mp3'
+    ]
 
+    # 随机选择一个音频文件
+    initial_audio_file = random.choice(audio_files)
+
+    # 嵌入的 HTML 和 JavaScript 代码
+    audio_html = f"""
+    <div>
+    <audio id="audioPlayer" controls>
+        <source src="{initial_audio_file}" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    </div>
+    <script>
+    // 音频文件列表
+    const audioFiles = {audio_files};
+
+    // 随机选择下一个音频文件
+    function getRandomAudioFile() {{
+        return audioFiles[Math.floor(Math.random() * audioFiles.length)];
+    }}
+
+    // 获取音频播放器元素
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    // 监听音频结束事件并随机播放下一个音频
+    audioPlayer.addEventListener('ended', function() {{
+        audioPlayer.src = getRandomAudioFile();
+        audioPlayer.play();
+    }});
+
+    // 检查是否有音频播放状态保存
+    if (localStorage.getItem('audioPlayerCurrentTime')) {{
+        audioPlayer.currentTime = localStorage.getItem('audioPlayerCurrentTime');
+    }}
+    if (localStorage.getItem('audioPlayerIsPlaying') === 'true') {{
+        audioPlayer.play();
+    }}
+
+    // 监听音频播放时间变化并保存
+    audioPlayer.addEventListener('timeupdate', function() {{
+        localStorage.setItem('audioPlayerCurrentTime', this.currentTime);
+    }});
+
+    // 监听音频播放和暂停状态并保存
+    audioPlayer.addEventListener('play', function() {{
+        localStorage.setItem('audioPlayerIsPlaying', 'true');
+    }});
+
+    audioPlayer.addEventListener('pause', function() {{
+        localStorage.setItem('audioPlayerIsPlaying', 'false');
+    }});
+    </script>
+    """
+
+    # 使用 components.html 嵌入自定义 HTML 和 JavaScript
+    components.html(audio_html, height=200)
+
+def play_music2():
+    # 定义本地音乐文件的目录
+    music_dir = f'{ST_PATH}/music'
+
+    # 获取目录中的所有音频文件
+    audio_files = [os.path.join(music_dir, file) for file in os.listdir(music_dir) if file.endswith(('.mp3', '.wav'))]
+
+    # 检查是否有音频文件
+    if not audio_files:
+        st.error("音乐目录中没有找到音频文件。请添加一些 .mp3 或 .wav 文件。")
+    else:
+        # 随机选择一个音频文件
+        initial_audio_file = random.choice(audio_files)
+
+        # 嵌入的 HTML 和 JavaScript 代码
+        audio_html = f"""
+        <div>
+        <audio id="audioPlayer" controls>
+            <source src="{initial_audio_file}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+        </div>
+        <script>
+        // 音频文件列表
+        const audioFiles = {audio_files};
+
+        // 随机选择下一个音频文件
+        function getRandomAudioFile() {{
+            return audioFiles[Math.floor(Math.random() * audioFiles.length)];
+        }}
+
+        // 获取音频播放器元素
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        // 监听音频结束事件并随机播放下一个音频
+        audioPlayer.addEventListener('ended', function() {{
+            audioPlayer.src = getRandomAudioFile();
+            audioPlayer.play();
+        }});
+
+        // 检查是否有音频播放状态保存
+        if (localStorage.getItem('audioPlayerCurrentTime')) {{
+            audioPlayer.currentTime = localStorage.getItem('audioPlayerCurrentTime');
+        }}
+        if (localStorage.getItem('audioPlayerIsPlaying') === 'true') {{
+            audioPlayer.play();
+        }}
+
+        // 监听音频播放时间变化并保存
+        audioPlayer.addEventListener('timeupdate', function() {{
+            localStorage.setItem('audioPlayerCurrentTime', this.currentTime);
+        }});
+
+        // 监听音频播放和暂停状态并保存
+        audioPlayer.addEventListener('play', function() {{
+            localStorage.setItem('audioPlayerIsPlaying', 'true');
+        }});
+
+        audioPlayer.addEventListener('pause', function() {{
+            localStorage.setItem('audioPlayerIsPlaying', 'false');
+        }});
+        </script>
+        """
+
+        # 使用 components.html 嵌入自定义 HTML 和 JavaScript
+        components.html(audio_html, height=200)
 
 def check_init_state(attributes:dict):
     """
