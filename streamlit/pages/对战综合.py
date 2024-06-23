@@ -4,6 +4,31 @@ import streamlit.components.v1 as components
 
 from utils import *
 
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+if 'condition_cha' not in st.session_state:
+    st.session_state.condition_cha = 0
+if 'task_cha' not in st.session_state:
+    st.session_state.task_cha = ""
+if 'user_input_cha' not in st.session_state:
+    st.session_state.user_input_cha = ""
+if 'task_list_cha' not in st.session_state:
+    st.session_state.task_list = []
+if 'focus_on_task_cha' not in st.session_state:
+    st.session_state.focus_on_task_cha = False
+if 'task_chat_history_cha' not in st.session_state:
+    st.session_state['task_chat_history_cha'] = []
+if 'selected_items_cha' not in st.session_state:
+    st.session_state.selected_items_cha = []
+if 'selected_items_tmp_cha' not in st.session_state:
+    st.session_state.selected_items_tmp_cha = []
+if 'selected_skills_cha' not in st.session_state:
+    st.session_state.selected_skills_cha = []
+if 'selected_skills_tmp_cha' not in st.session_state:
+    st.session_state.selected_skills_tmp_cha = []
+
+play_music()
+
 if "challenage_over" not in st.session_state:
     st.session_state["challenage_over"] = False
 
@@ -43,20 +68,22 @@ def battle_with_other(user_input):
 def render_battle_history():
     st.title("战斗，爽!")
 
-    with open(ST_PATH+f"/image/系统.png" , "rb") as avatar_file:
-        avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+    with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
+        me_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+    with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
+        other_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
 
     for message in st.session_state["battle_history"]:
         name, action = message["role"], message["text"]
 
         if name == st.session_state['username']:
             components.html(
-                html_local_player.format(content = action, avatar_base64 = avatar_base64),
+                html_local_player.format(content = action, avatar_base64 = me_avatar_base64),
                 height=50
             )
         elif name != "System":
             components.html(
-                html_remote_player.format(content = action, avatar_base64 = avatar_base64),
+                html_remote_player.format(content = action, avatar_base64 = other_avatar_base64),
                 height=50
         )
         else:
@@ -72,6 +99,38 @@ def render_battle_history():
     if user_input:
         battle_with_other(user_input)
 
+# 结束任务,目前需要正常结束才可清除历史角色
+def end_task():
+    st.session_state.condition_cha = 0
+    for role in st.session_state.roles_task_cha:
+        if role!="系统":
+            os.remove(ST_PATH + f"/image/{role}.png")
+    st.session_state.roles_task_cha = []
+
+# 获取背包信息
+def get_bag_info():
+    response = requests.get(url + 'bag', json={
+        'role': st.session_state['username']
+    })
+
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        st.write("Error: Unable to get bag info.")
+
+# 获取技能信息
+def get_skill_info():
+    response = requests.get(url + 'skill', json={
+        'role': st.session_state['username']
+    })
+
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    else:
+        st.write("Error: Unable to get skill info.")
+
 # 主逻辑
 if not st.session_state['logged_in']:
     st.write("尊敬的勇士，请先表明身份！")
@@ -81,12 +140,10 @@ else:
     r = requests.get(url = url+"get_list", json={"role":st.session_state["username"]})
     r = r.json()
     st.session_state["online_roles"] = r["roles"]
-    # except:
-        # st.session_state["online_roles"] = []
 
     if st.session_state.condition_cha == 0:
         st.title('Tasks')
-        st.write(f"{st.session_state['username']}, 当前在线用户,点击以发起挑战")
+        st.write(f"{st.session_state['username']}, 当前其他在线用户,点击以发起挑战")
         # check_tasks()
         if st.button("查看挑战请求"):
             st.session_state.condition_cha = 1
@@ -95,6 +152,8 @@ else:
             st.write("暂无其他在线用户")
         else:
             for role in st.session_state['online_roles']:
+                if role == st.session_state['username']:
+                    continue
                 if st.button(role):
                     #发起挑战
                     r = requests.get(url=url+"challenge",json = {'role1':st.session_state['username'],'role2':role,'image_data':None})
@@ -121,7 +180,7 @@ else:
                         r = requests.get(url = url+"/accept_challenge",json={"role":st.session_state["username"],"id":st.session_state["id_list"][idx]})
                         r = r.json()
                         if r["status_code"]==200:
-                            st.session_state["condition_cha"] = 2 #转入对话页面
+                            st.session_state["condition_cha"] = 3 #转入对话页面
                             st.session_state["battle_id"] = st.session_state["id_list"][idx]
                             st.session_state["battle_history"] = []
                             st.rerun()
@@ -135,11 +194,88 @@ else:
                         r = requests.get(url = url+"/reject_challenge",json={"role":st.session_state["username"],"id":st.session_state["id_list"][idx]})
                     except Exception as e:
                         print(e)
+    # 玩家选择物品
+    elif st.session_state.condition_cha == 3:
+        st.title("选择你要带入任务的物品 (最多5件)")
+        bag_items = get_bag_info()['equipments']
+        selected_items = st.session_state.selected_items_cha
 
+        # 显示背包物品并允许选择
+        for item in bag_items:
+            if st.checkbox(item, key=item):
+                if item not in selected_items:
+                    selected_items.append(item)
+            else:
+                if item in selected_items:
+                    selected_items.remove(item)
+
+        st.write(f"已选择的物品: {selected_items}")
+
+        # 限制选择的物品数量
+        if len(selected_items) > 5:
+            st.error("你最多只能选择5件物品！")
+        else:
+            if st.button("确认并选择技能"):
+                st.session_state.condition_cha = 5
+                st.rerun()
+
+    # 玩家选择技能
+    elif st.session_state.condition_cha == 5:
+        st.title("选择你要带入任务的技能 (最多5个)")
+        skill_items = get_skill_info()['skills']
+        selected_skills = st.session_state.selected_skills_cha
+
+        # 显示技能并允许选择
+        for skill in skill_items:
+            if st.checkbox(skill, key=skill):
+                if skill not in selected_skills:
+                    selected_skills.append(skill)
+            else:
+                if skill in selected_skills:
+                    selected_skills.remove(skill)
+
+        st.write(f"已选择的技能: {selected_skills}")
+
+        # 限制选择的技能数量
+        if len(selected_skills) > 5:
+            st.error("你最多只能选择5个技能！")
+        else:
+            if st.button("确认并进入对战"):
+                st.session_state.condition_cha = 2
+                st.rerun()
     elif st.session_state.condition_cha == 2:
-        render_battle_history() #其余内容暂时放入utils内
-        # time.sleep(5)
-        # st.rerun()
+        image_path = ST_PATH + f"/image/cover.png"
+        opacity = 0.5  # 调节透明度，范围从 0 到 1
+        try:
+            set_background(image_path, opacity)
+        except:
+            image_path = ST_PATH + "/image/cover.png"
+            set_background(image_path, opacity)
+
+        render_battle_history()
+
+        st.session_state.selected_skills_tmp_cha = []
+        st.session_state.selected_items_tmp_cha = []
+        st.sidebar.title("本次使用的物品/技能")  # TODO
+        st.sidebar.subheader("物品")
+        selected_items = st.session_state.selected_items_cha
+        for item in selected_items:
+            if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
+                if item not in st.session_state.selected_items_tmp_cha:
+                    st.session_state.selected_items_tmp_cha.append(item)
+            else:
+                if item in st.session_state.selected_items_tmp_cha:
+                    st.session_state.selected_items_tmp_cha.remove(item)
+
+        st.sidebar.subheader("技能")
+        selected_skills = st.session_state.selected_skills_cha
+        for skill in selected_skills:
+            if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
+                if skill not in st.session_state.selected_skills_tmp_cha:
+                    st.session_state.selected_skills_tmp_cha.append(skill)
+            else:
+                if skill in st.session_state.selected_skills_tmp_cha:
+                    st.session_state.selected_skills_tmp_cha.remove(skill)
 
 while True:
     # if st.session_state.condition_cha == 2:

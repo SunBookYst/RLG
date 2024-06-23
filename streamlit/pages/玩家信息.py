@@ -5,6 +5,8 @@ import requests
 
 from utils import *
 
+play_music()
+
 def get_player_info():
     response = requests.get(url + 'status', json={
         'role': st.session_state['username']
@@ -19,7 +21,7 @@ def get_player_info():
 
 if not st.session_state['logged_in']:
     st.write("尊敬的勇士，请先表明身份！")
-    st.page_link("home_page.py", label="Go to login")
+    st.page_link("主页.py", label="Go to login")
 else:
     attribute = get_player_info()
     if st.button('refresh'):

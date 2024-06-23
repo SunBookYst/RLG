@@ -1,6 +1,3 @@
-# streamlit run ./streamlit/home_page.py
-# 初始化
-
 import streamlit as st
 import requests
 import json
@@ -19,6 +16,8 @@ if 'sign_up' not in st.session_state:
     st.session_state['sign_up'] = False
 if 'chat_history_rq' not in st.session_state:
     st.session_state['chat_history_rq'] = []
+
+play_music()
 
 
 def chat_with_dm(user_input):

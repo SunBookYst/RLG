@@ -29,6 +29,8 @@ if 'selected_skills_tmp_personal' not in st.session_state:
 if 'roles_task_personal' not in st.session_state:
     st.session_state.roles_task_personal = ["系统"]
 
+play_music()
+
 # 获取任务列表
 def check_tasks():
     response = requests.get(url + 'task_info_personal', json={

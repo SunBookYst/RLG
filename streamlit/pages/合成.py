@@ -3,6 +3,9 @@ import requests
 
 from utils import *
 
+
+play_music()
+
 # 定义一个映射表，将显示的文本映射到整数值
 options = {
     '凤羽': 0,

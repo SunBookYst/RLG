@@ -21,6 +21,7 @@ TASK_PROMPT = get_prompt('./prompts/task.txt')
 EQUIPMENT_PROMPT = get_prompt('./prompts/equipment_craft.txt')
 SKILL_PROMPT = get_prompt('./prompts/skill_generate.txt')
 CUSTOM_PROMPT = get_prompt('./prompts/task_custom.txt')
+BATTLE_PROMPT = get_prompt('./prompts/battle.txt')
 
 
 DM_PROMPT = get_prompt("./prompts/DM.txt")

@@ -10,8 +10,10 @@ import os
 
 import concurrent.futures
 
-sys.path.append('..')
-
+# sys.path.append('..')
+dir_path = os.path.dirname(os.path.realpath(__file__))
+parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
+sys.path.insert(0, parent_dir_path)
 # from subsenario.utils import initialize_llm
 from request import LLMAPI, StableDiffusion
 
@@ -435,7 +437,7 @@ class BackEndSystem(object):
         # Why doing so?
         # sd内部有llm
         self.sd: StableDiffusion = StableDiffusion()
-        self.sd.initialize()
+        # self.sd.initialize()
 
         # 任务队列
         self.task_queue = {}
@@ -619,7 +621,8 @@ class BackEndSystem(object):
                 if play["role"] and play["role"] not in roles:
                     debug_print("generating img...")
                     description = f"【场景】{play['text']}\n【需要描绘的角色】{play['role']}"
-                    img = self.sd.standard_workflow(description, 1)
+                    # img = self.sd.standard_workflow(description, 1)
+                    img = None
                     play["image_data"] = img
 
                 # 游戏结束，进入结算
@@ -663,7 +666,8 @@ class BackEndSystem(object):
                 task = player.personal_task_queue[task_name]
 
         play = str(task)
-        task_img = self.sd.standard_workflow(play, 2)
+        # task_img = self.sd.standard_workflow(play, 2)
+        task_img = None
 
         with lock:
             task["occupied"] = True
@@ -855,7 +859,7 @@ class BackEndSystem(object):
         status = player_role.organizePlayerUse(equipment, skill)
 
         with lock:
-            print(f"player{}")
+            print(f"player")
             battle.now_round['details'] = {}
             battle.now_round['details'][player] = {'action': player_input, 'status': status}
 

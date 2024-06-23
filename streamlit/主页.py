@@ -20,6 +20,8 @@ if 'chat_history' not in st.session_state:
 if 'condition_cha' not in st.session_state:
     st.session_state["condition_cha"] = 0
 
+play_music()
+
 def login():
     """
     登录
@@ -108,7 +110,11 @@ def show_signup_page():
         with col_exclamation:
             if password != password2:
                 st.write("Pls Check!")
-        signup_button = st.button('Sign up and Log in')
+        col21, col22 = st.columns([1,1])
+        with col21:
+            signup_button = st.button('Sign up and Log in')
+        with col22:
+            login_button = st.button('Back')
 
 
         if signup_button and username and password and email and password==password2:
@@ -124,7 +130,10 @@ def show_signup_page():
                 st.rerun()
             else:
                 st.write(f"注册出错，请检查，错误码是{r['status_code']}")
-            # except:
+
+        if login_button:
+            st.session_state['sign_up'] = False
+            st.rerun()
                 # st.write("与服务器的连接出错")
 
             # st.session_state['waiting'] = True
@@ -139,7 +148,7 @@ def show_waiting_page():
 # 渲染欢迎页面
 def show_welcome_page():
     # 设置背景图片和透明度
-    image_path = ST_PATH + "/image/bg.png"
+    image_path = ST_PATH + "/image/cover.png"
     opacity = 0.5  # 调节透明度，范围从 0 到 1
     set_background(image_path, opacity)
     st.title('欢迎来到苍穹大陆，')
