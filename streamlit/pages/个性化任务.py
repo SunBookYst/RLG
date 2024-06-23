@@ -29,7 +29,7 @@ if 'selected_skills_tmp_personal' not in st.session_state:
 if 'roles_task_personal' not in st.session_state:
     st.session_state.roles_task_personal = ["系统"]
 
-play_music()
+placeholder = play_music()
 
 # 获取任务列表
 def check_tasks():
@@ -298,37 +298,6 @@ else:
             st.session_state.user_input_personal = ""
             st.rerun()
 
-        # 显示侧边栏
-        # st.sidebar.title("本次使用的物品/技能") #TODO
-        # st.sidebar.subheader("物品")
-        # for item in st.session_state.selected_items:
-        #     st.sidebar.write(item)
-
-        # st.sidebar.subheader("技能")
-        # for skill in st.session_state.selected_skills:
-        #     st.sidebar.write(skill)
-        # st.session_state.selected_skills_tmp = []
-        # st.session_state.selected_items_tmp = []
-        # st.sidebar.title("本次使用的物品/技能")  # TODO
-        # st.sidebar.subheader("物品")
-        # selected_items = st.session_state.selected_items
-        # for item in selected_items:
-        #     if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-        #         if item not in st.session_state.selected_items_tmp:
-        #             st.session_state.selected_items_tmp.append(item)
-        #     else:
-        #         if item in st.session_state.selected_items_tmp:
-        #             st.session_state.selected_items_tmp.remove(item)
-
-        # st.sidebar.subheader("技能")
-        # selected_skills = st.session_state.selected_skills
-        # for skill in selected_skills:
-        #     if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-        #         if skill not in st.session_state.selected_skills_tmp:
-        #             st.session_state.selected_skills_tmp.append(skill)
-        #     else:
-        #         if skill in st.session_state.selected_skills_tmp:
-        #             st.session_state.selected_skills_tmp.remove(skill)
         # 结束任务按钮
         if st.button("结束任务"):
             end_task()
@@ -340,5 +309,5 @@ else:
 
 while True:
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)

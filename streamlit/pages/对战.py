@@ -27,7 +27,7 @@ if 'selected_skills_cha' not in st.session_state:
 if 'selected_skills_tmp_cha' not in st.session_state:
     st.session_state.selected_skills_tmp_cha = []
 
-play_music()
+placeholder = play_music()
 
 if "challenage_over" not in st.session_state:
     st.session_state["challenage_over"] = False
@@ -66,28 +66,51 @@ def battle_with_other(user_input):
         st.session_state["battle_history"] += round
 
 def render_battle_history():
-    st.title("战斗，爽!")
+    st.title("正在掐架中...")
 
-    with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
-        me_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-    with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
-        other_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+    # with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
+    #     me_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+    # with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
+    #     other_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
 
-    for message in st.session_state["battle_history"]:
-        name, action = message["role"], message["text"]
+    # for message in st.session_state["battle_history"]:
+    #     name, action = message["role"], message["text"]
 
-        if name == st.session_state['username']:
-            components.html(
-                html_local_player.format(content = action, avatar_base64 = me_avatar_base64),
-                height=50
+    #     if name == st.session_state['username']:
+    #         components.html(
+    #             html_local_player.format(content = action, avatar_base64 = me_avatar_base64),
+    #             height=50
+    #         )
+    #     elif name != "System":
+    #         components.html(
+    #             html_remote_player.format(content = action, avatar_base64 = other_avatar_base64),
+    #             height=50
+    #     )
+    #     else:
+    #         st.caption(action)
+    for message in st.session_state['battle_history']:
+        role, text = message['role'],message['text']
+        if role is not None and role!="system":
+            if role == st.session_state['username']:
+                avatar_url = ST_PATH + "/image/me.png"  # 用户头像路径
+            else:
+                avatar_url = ST_PATH + f"/image/{role}.png"  # DM头像路径
+            try:
+                with open(avatar_url, "rb") as avatar_file:
+                    avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+            except:
+                print(f"{avatar_url}不存在！切换为系统头像")
+                with open(ST_PATH + f"/image/系统.png", "rb") as avatar_file:
+                    avatar_base64 = base64.b64encode(avatar_file.read()).decode()
+            st.markdown(
+                f'<div style="display: flex; align-items: center; margin-bottom: 10px;">'
+                f'<img src="data:image/png;base64,{avatar_base64}" style="width: 60px; height: 60px; margin-right: 10px;">'
+                f'<div><strong>{role}:</strong> {text}</div>'
+                f'</div>',
+                unsafe_allow_html=True
             )
-        elif name != "System":
-            components.html(
-                html_remote_player.format(content = action, avatar_base64 = other_avatar_base64),
-                height=50
-        )
         else:
-            st.caption(action)
+            st.markdown(f'**{text}**')
     if st.session_state.challenage_over == True:
         if st.button("返回用户列表"):
             st.session_state.condition_cha = 0
@@ -276,12 +299,15 @@ else:
             else:
                 if skill in st.session_state.selected_skills_tmp_cha:
                     st.session_state.selected_skills_tmp_cha.remove(skill)
+        if st.session_state.challenage_over == True:
+            if st.button("结束战斗"):
+                end_task()
 
 while True:
     # if st.session_state.condition_cha == 2:
         # render_battle_history()
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)
     st.rerun()
 

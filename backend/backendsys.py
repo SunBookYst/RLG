@@ -7,13 +7,17 @@ import pickle
 import json
 import os
 
-
-import concurrent.futures
-
-# sys.path.append('..')
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
 sys.path.insert(0, parent_dir_path)
+
+from request import LLMAPI, StableDiffusion
+
+from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE, TASK_DISTRIBUTION
+
+from util.prompt import (TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PROMPT, DM_PROMPT, JUDGE_PROMPT,
+                         ACT_PROMPT, BATTLE_PROMPT)
+
 # from subsenario.utils import initialize_llm
 from request import LLMAPI, StableDiffusion
 
@@ -29,8 +33,11 @@ from util.prompt import JUDGE_PROMPT, ACT_PROMPT
 from util.prompt import BATTLE_PROMPT
 
 
+
+# debug模式
 DEBUG = True
-lock = threading.Lock()
+# 全局线程锁
+LOCK = threading.Lock()
 
 
 def debug_print(*args):
@@ -65,7 +72,7 @@ def fixResponse(origin_text: str, attr: str):
         return text
 
 
-def initialize_llm(prompt, type="KIMI-server"):
+def initialize_llm(prompt, type: str = "KIMI-server"):
     """
     instantiate the LLMAPI class.
 
@@ -77,24 +84,9 @@ def initialize_llm(prompt, type="KIMI-server"):
         LLMAPI: the LLMAPI class.
     """
     # print("Initializing...")
-    model = LLMAPI(model_name = type)
-    intro = model.generateResponse(prompt, stream = True)
+    model = LLMAPI(model_name=type)
+    intro = model.generateResponse(prompt, stream=True)
     return model
-
-
-def read_file(prompt_name):
-    """
-    read the file name.
-    ! deprecated soon.
-    Args:
-        prompt_name (str): the file name of the prompt stored.
-
-    Returns:
-        str: the content of the file.
-    """
-    with open(f"../prompts/{prompt_name}.txt", 'r', encoding='utf-8') as file:
-        prompt = file.read()
-    return prompt
 
 
 class Player(object):
@@ -155,11 +147,11 @@ class Player(object):
         self.skill_generator    : LLMAPI = sg_model
         self.task_custom        : LLMAPI = tc_model
 
-        self.task_director : LLMAPI  = None
-        self.task_judge    : LLMAPI = None
-        self.task_focus    : bool   = False
-        self.current_task  : str    = None
-        self.current_opponent: str  = None
+        self.task_director   : LLMAPI = None
+        self.task_judge      : LLMAPI = None
+        self.task_focus      : bool = False
+        self.current_task    : str = None
+        self.current_opponent: str = None
 
         # 玩家的个性化任务
         self.personal_task_queue: dict = {}
@@ -170,9 +162,9 @@ class Player(object):
         self.challenge_queue: dict = {}
 
     def takeTask(self, 
-                task_director: LLMAPI,
-                judge        : LLMAPI,
-                task_name    : str)  : 
+                 task_director: LLMAPI,
+                 judge        : LLMAPI,
+                 task_name    : str):
         """
         Take a task.
 
@@ -230,8 +222,8 @@ class Player(object):
         return response
 
     def talkToDirector(self, 
-                        player_input: str,
-                        player_use  : dict): 
+                       player_input: str,
+                       player_use  : dict):
         """
         
         Talk to the task_director.
@@ -285,8 +277,7 @@ class Player(object):
 
         return judge, play
 
-
-    def getReward(self, rewards:dict):
+    def getReward(self, rewards: dict):
         """
         Update the player's property based on the rewards.
 
@@ -296,7 +287,7 @@ class Player(object):
 
         debug_print(rewards)
 
-        if rewards == None or rewards == {}:
+        if not rewards or rewards == {}:
             return
 
         for k, v in rewards.items():
@@ -305,7 +296,7 @@ class Player(object):
             else:
                 debug_print("Not presented attr {k}.")
 
-    def consumeProperty(self, item:str, num:int):
+    def consumeProperty(self, item: str, num: int):
         """
         Consume the property of the player.
 
@@ -326,8 +317,8 @@ class Player(object):
             return True
 
     def organizePlayerUse(self, 
-                            equipment_list: list,
-                            skill_list    : list): 
+                          equipment_list: list,
+                          skill_list    : list):
         """
         To find the equipment and skill that the player owns.
 
@@ -343,8 +334,8 @@ class Player(object):
             }
         """
         result = {
-            "equipment": list( set(equipment_list) & set(self.bag) ),
-            "skill": list( set(skill_list) & set(self.skills) )
+            "equipment": list(set(equipment_list) & set(self.bag)),
+            "skill": list(set(skill_list) & set(self.skills))
         }
 
         return result
@@ -352,20 +343,42 @@ class Player(object):
 
 class Battle(object):
     def __init__(self, player1, player2, player1_role, player2_role, battle_id):
+        # 独特标识该战斗的id
         self.battle_id: str = battle_id
-        self.status: int = 0  # 0：等待接受，1：开打，2：已拒绝， 3：接受过
+        # 战斗创建时间，便于清理超时挑战
+        self.create_time: datetime = datetime.now()
+        # 0：等待接受，1：已接受， 2：已拒绝， 3：正在进行， 4：已结束
+        self.status: int = 0
+
+        # 属于该战斗的系统
         self.sys: LLMAPI = None
-        self.challenger: str = player1  # 发起者
-        self.target: str = player2  # 被挑战者
-        self.pair: dict = {player1: player2, player2: player1}
+        # 发起者
+        self.challenger: str = player1
         self.challenger_role: Player = player1_role
+        # 被挑战者
+        self.target: str = player2
         self.target_role: Player = player2_role
-        self.last_round: dict = {self.challenger: 0, self.target: 0, 'details': {self.challenger: None, self.target: None, 'sys': None}}
-        self.now_round: dict = {}
+        # 玩家对，便于查找对手是谁
+        self.pair: dict = {player1: player2, player2: player1}
+
+        # 已经完成的上一回合战斗
+        self.last_round: dict = {
+            self.challenger: 0,
+            self.target: 0,
+            'details': {
+                self.challenger: None, self.target: None, 'sys': None
+            }
+        }
+        # 等待完成的新一回合战斗
+        self.now_round: dict = {'details': {}}
+        # 得分记录
         self.record: dict = {player1: 0, player2: 0}
 
     def directFight(self, player):
-        print("directing...")
+        if DEBUG:
+            print("directing...")
+
+        opponent = self.pair[player]
         # player是指触发该方法的player
         details = {
             self.challenger: {
@@ -378,16 +391,28 @@ class Battle(object):
             },
         }
         content = json.dumps(details, ensure_ascii=False)
-        res = self.sys.generateResponse(content)
-        print(res)
+        res = json.loads(self.sys.generateResponse(content))
 
-        with lock:
-            self.last_round = self.now_round
-            self.last_round['details']['sys'] = res["description"]
-            self.last_round[player] = 1  # 已阅
-            self.last_round[self.pair[player]] = 0  # 未读
-            self.now_round = {}
-        return json.loads(res)
+        if DEBUG:
+            print(res)
+
+        self.last_round = self.now_round
+        self.last_round['details']['sys'] = res["description"]
+        self.last_round[player] = 1  # 已阅
+        self.last_round[self.pair[player]] = 0  # 未读
+
+        self.now_round = {'details': {}}
+
+        if res['judge'] != "平局":
+            self.record[res['judge']] += 1
+
+        battle_status = False
+        # 率先赢下5轮者获胜
+        if self.record[opponent] == 5 or self.record[player] == 5:
+            battle_status = True
+            self.status = 4
+
+        return res['description'], battle_status
 
 
 class BackEndSystem(object):
@@ -466,14 +491,14 @@ class BackEndSystem(object):
         if email in self.player_dict2:
             return False
 
-        dm_model  : LLMAPI = initialize_llm(DM_PROMPT)
+        dm_model: LLMAPI = initialize_llm(DM_PROMPT)
         equipment_generator: LLMAPI = initialize_llm(EQUIPMENT_PROMPT)
         skill_generator: LLMAPI = initialize_llm(SKILL_PROMPT)
         task_custom: LLMAPI = initialize_llm(CUSTOM_PROMPT)
 
         new_player: Player = Player(name, email, password, dm_model, equipment_generator, skill_generator, task_custom)
 
-        with lock:
+        with LOCK:
             # regist the user in the list.
             self.player_dict[name] = new_player
             self.player_dict2[email] = new_player
@@ -501,7 +526,7 @@ class BackEndSystem(object):
         if password != player.password:
             return None
         else:
-            with lock:
+            with LOCK:
                 self.online_player[player.name] = datetime.now()
             return player.name
 
@@ -669,7 +694,7 @@ class BackEndSystem(object):
         # task_img = self.sd.standard_workflow(play, 2)
         task_img = None
 
-        with lock:
+        with LOCK:
             task["occupied"] = True
             task["player"] = player_name
 
@@ -703,10 +728,10 @@ class BackEndSystem(object):
             return None
 
     def craftItems(self, 
-                    player_name: str, 
-                    mode: int, 
-                    num: int, 
-                    description: str):
+                   player_name: str,
+                   mode: int,
+                   num: int,
+                   description: str):
         """
         
         To finally make some items to use.
@@ -729,7 +754,7 @@ class BackEndSystem(object):
             return "Error"
 
         if mode == 0:
-            if player.consumeProperty('凤羽', num) == False:
+            if not player.consumeProperty('凤羽', num):
                 return "您的凤羽储量不足，请不要为难我，勇士！"
             
             request = f"{player_name}想要制作{description}的装备，对此玩家愿意投入 {num} 凤羽"
@@ -744,8 +769,7 @@ class BackEndSystem(object):
             return equip
 
         elif mode == 1:
-            
-            if player.consumeProperty('龙眼', num) == False:
+            if not player.consumeProperty('龙眼', num):
                 return "您的龙眼储量不足，请不要为难我，勇士！"
             
             request = f"【请求之人】{player_name} 需要一个{description}的技能，对此我愿意投入{num}个龙眼。"
@@ -796,20 +820,12 @@ class BackEndSystem(object):
         result = list(self.online_player.keys())
         return result
 
-    def checkOnlineState(self):
-        """
-        Update the online player list.
-        TODO: Not implemented yet.
-        """
-
-        pass
-
     def createBattle(self, player1, player2):
         battle_id = player1+player2
         player_role1: Player = self.player_dict[player1]
         player_role2: Player = self.player_dict[player2]
         new_battle: Battle = Battle(player1, player2, player_role1, player_role2, battle_id)
-        with lock:
+        with LOCK:
             self.battle_queue[battle_id] = new_battle
 
         player_role1: Player = self.player_dict[player1]
@@ -828,61 +844,69 @@ class BackEndSystem(object):
         return battle_id
 
     def acceptBattle(self, player, battle_id):
-        battle_sys: LLMAPI = initialize_llm(BATTLE_PROMPT)
-        battle: Battle = self.battle_queue[battle_id]
-        with lock:
-            battle.status = 1
-            battle.sys = battle_sys
+        try:
+            battle_sys: LLMAPI = initialize_llm(BATTLE_PROMPT)
+            battle: Battle = self.battle_queue[battle_id]
+            with LOCK:
+                battle.status = 1
+                battle.sys = battle_sys
 
-        battle.challenger_role.challenge_queue[battle_id]['status'] = 1
-        battle.target_role.challenge_queue[battle_id]['status'] = 1
-
-        return 200
+            battle.challenger_role.challenge_queue[battle_id]['status'] = 1
+            battle.target_role.challenge_queue[battle_id]['status'] = 1
+            return 200
+        except:
+            return 404
 
     def rejectBattle(self, player, battle_id):
-        battle: Battle = self.battle_queue[battle_id]
-        with lock:
-            battle.status = 2
-            self.battle_queue.pop(battle_id)
+        try:
+            battle: Battle = self.battle_queue[battle_id]
+            with LOCK:
+                battle.status = 2
+                self.battle_queue.pop(battle_id)
 
-        battle.challenger_role.challenge_queue.pop(battle_id)
-        battle.target_role.challenge_queue.pop(battle_id)
-        return 200
+            battle.challenger_role.challenge_queue.pop(battle_id)
+            battle.target_role.challenge_queue.pop(battle_id)
+            return 200
+        except:
+            return 404
 
     def playerBattle(self, battle_id: str, player: str, player_input: str, equipment: list, skill: list):
+
         player_role: Player = self.player_dict[player]
         battle: Battle = self.battle_queue[battle_id]
         battle_status = False
-        if not battle:
-            return None, "无效的战斗ID", "无法找到该战斗"
 
-        status = player_role.organizePlayerUse(equipment, skill)
+        player_status = player_role.organizePlayerUse(equipment, skill)
 
-        with lock:
-            print(f"player")
-            battle.now_round['details'] = {}
-            battle.now_round['details'][player] = {'action': player_input, 'status': status}
+        with LOCK:
+            if DEBUG:
+                print(f"player{player} has input!")
+                print("battle_id:", id(battle))
+            battle.now_round['details'][player] = {'action': player_input, 'status': player_status}
+            if DEBUG:
+                for k, v in battle.now_round.items():
+                    print(k)
+                    print(v)
 
             opponent = battle.pair[player]
 
             if opponent in battle.now_round['details']:
                 fight = battle.now_round['details']
-                res = battle.directFight(player)
-                if res['judge'] != "平局":
-                    battle.record[res['judge']] += 1
+                des, battle_status = battle.directFight(player)
 
-                if battle.record[opponent] == 5 or battle.record[player] == 5:
-                    battle_status = True
+                if DEBUG:
+                    print('successful round!')
+                    print(opponent, fight[opponent], des, battle_status)
 
-                return opponent, fight[opponent], res["description"], battle_status
+                return opponent, fight[opponent], des, battle_status
 
             return opponent, "对手正在出招", "请耐心等待对手", battle_status
 
-    def get_all_online_player(self):
+    def getOnlinePlayers(self):
         return list(self.online_player.keys())
 
-    def online_confirm(self, player: str):
-        with lock:
+    def onlineConfirm(self, player: str):
+        with LOCK:
             self.online_player[player] = datetime.now()
 
     def getChallengeList(self, player: str):
@@ -909,94 +933,109 @@ class BackEndSystem(object):
         status = False
         if battle.record[player] == 5 or battle.record[battle.pair[player]] == 5:
             status = True
+            battle.status = 4
         if battle.last_round[player] == 0:
             battle.last_round[player] = 1
-            return battle.pair[player], battle.last_round['details'][battle.pair[player]], battle.last_round['details']['sys'], status
+            return (battle.pair[player],
+                    battle.last_round['details'][battle.pair[player]]['action'],
+                    battle.last_round['details']['sys'],
+                    status)
         else:
             return None, None, None, status
 
 
 # 负责管理后台系统
 class MultiThreadManager:
-    def __init__(self, backend_sys: BackEndSystem, check_interval=10):
+    def __init__(self, backend_sys: BackEndSystem):
         self.backend_sys = backend_sys
-        self.check_interval = check_interval
 
         self.threads = []
         self.running = True
+        self.lock = threading.Lock()
 
         # 创建并启动任务监控线程
-        monitor_thread = threading.Thread(target=self.refresh_task_queue)
-        monitor_thread.start()
-        self.threads.append(monitor_thread)
+        self.create_and_start_thread(self.refresh_task_queue, "TaskQueueMonitorThread")
 
         # 创建并启动玩家信息保存线程
-        player_info_thread = threading.Thread(target=self.save_player_info)
-        player_info_thread.start()
-        self.threads.append(player_info_thread)
+        self.create_and_start_thread(self.save_player_info, "PlayerInfoSaveThread")
 
         # 创建玩家离线线程
-        player_offline_thread = threading.Thread(target=self.clear_offline_players)
-        player_offline_thread.start()
-        self.threads.append(player_offline_thread)
+        self.create_and_start_thread(self.clear_offline_players, "OfflinePlayerClearThread")
 
         # 创建并启动战斗队列管理线程
-        battle_clear_thread = threading.Thread(target=self.clear_rejected_battle)
-        battle_clear_thread.start()
-        self.threads.append(battle_clear_thread)
+        self.create_and_start_thread(self.clear_rejected_battle, "BattleQueueClearThread")
+
+    def create_and_start_thread(self, target, name):
+        thread = threading.Thread(target=target, name=name)
+        thread.start()
+        self.threads.append(thread)
 
     # 每隔600秒检查一次任务队列，如果小于3就会自动补充
     def refresh_task_queue(self, max_size=3):
         while self.running:
-            existed_task_num = len(self.backend_sys.task_queue)
-            if len(self.backend_sys.task_queue) < max_size:
-                new_task_num = max_size - existed_task_num
-                self.backend_sys.refreshTaskQueue(new_task_num)
-                print(f"队列大小少于{max_size}，已添加{new_task_num}个元素。当前队列大小：{len(self.backend_sys.task_queue)}")
+            try:
+                existed_task_num = len(self.backend_sys.task_queue)
+                if existed_task_num < max_size:
+                    new_task_num = max_size - existed_task_num
+                    self.backend_sys.refreshTaskQueue(new_task_num)
+                    print(
+                        f"公共任务数量少于{max_size}，已添加{new_task_num}个任务。当前队列大小：{len(self.backend_sys.task_queue)}")
+            except Exception as e:
+                print(f"Error in refresh_task_queue: {e}")
             time.sleep(600)
 
     def save_player_info(self):
-
         while self.running:
-            print('start saving...')
-            if not os.path.isdir('./saves'):
-                os.makedirs('./saves')
-            for name, info in self.backend_sys.online_player.items():
-                filename = f'./saves/{name}.pkl'
-                with open(filename, 'wb') as file:
-                    pickle.dump(self.backend_sys.player_dict[name], file)
-            print('saving over.')
+            try:
+                if not os.path.isdir('./saves'):
+                    os.makedirs('./saves')
+                auto_save_num = 0
+                for name, info in self.backend_sys.online_player.items():
+                    filename = f'./saves/{name}.pkl'
+                    with open(filename, 'wb') as file:
+                        pickle.dump(self.backend_sys.player_dict[name], file)
+                    auto_save_num += 1
+                print(f"成功保存 {auto_save_num} 个在线用户的信息")
+            except Exception as e:
+                print(f"Error in save_player_info: {e}")
             time.sleep(300)
 
     def clear_offline_players(self):
         while self.running:
-            print('start clearing...')
-            online_players = list(self.backend_sys.online_player.keys())
-            time_now = datetime.now()
-            for name in online_players:
-                if time_now - self.backend_sys.online_player[name] > timedelta(seconds=10):
-                    # 登出并保存信息
-                    with lock:
-                        last_time = self.backend_sys.online_player.pop(name)
-                    if not os.path.isdir('./saves'):
-                        os.makedirs('./saves')
-                    filename = f'./saves/{name}.pkl'
-                    with open(filename, 'wb') as file:
-                        pickle.dump(self.backend_sys.player_dict[name], file)
-                    print(f"player {name} is offline. last login: {last_time}")
-            print('clear over.')
-            time.sleep(10)
+            try:
+                online_players = list(self.backend_sys.online_player.keys())
+                time_now = datetime.now()
+                for name in online_players:
+                    if time_now - self.backend_sys.online_player[name] > timedelta(seconds=10):
+                        with self.lock:
+                            last_time = self.backend_sys.online_player.pop(name)
+                        if not os.path.isdir('./saves'):
+                            os.makedirs('./saves')
+                        filename = f'./saves/{name}.pkl'
+                        with open(filename, 'wb') as file:
+                            pickle.dump(self.backend_sys.player_dict[name], file)
+                        print(f"玩家 【{name}】 下线了. 最近一次在线时间为: {last_time}")
+            except Exception as e:
+                print(f"Error in clear_offline_players: {e}")
+            time.sleep(30)
 
     def clear_rejected_battle(self):
         while self.running:
-            existing_battle = list(self.backend_sys.battle_queue.keys())
-            for battle_id in existing_battle:
-                if self.backend_sys.battle_queue[battle_id].status == 0:
-                    moved_battle = self.backend_sys.battle_queue.pop(battle_id)
-                    moved_battle.challenger_role.challenge_queue.pop(battle_id)
-                    moved_battle.target_role.challenge_queue.pop(battle_id)
-                    print(f"移除了战斗{battle_id}: {moved_battle}")
+            try:
+                existing_battle = list(self.backend_sys.battle_queue.keys())
+                for battle_id in existing_battle:
+                    if (self.backend_sys.battle_queue[battle_id].status == 0 and
+                            datetime.now() - self.backend_sys.battle_queue[battle_id].create_time > timedelta(
+                                minutes=1)):
+                        moved_battle: Battle = self.backend_sys.battle_queue.pop(battle_id)
 
+                        moved_battle.challenger_role.challenge_queue.pop(battle_id)
+                        moved_battle.target_role.challenge_queue.pop(battle_id)
+                        print(f"移除了战斗 “{battle_id}”, 发起时间为{moved_battle.create_time}")
+                        del moved_battle  # 显式删除引用
+
+            except Exception as e:
+                print(f"Error in clear_rejected_battle: {e}")
             time.sleep(60)
 
     def stop(self):

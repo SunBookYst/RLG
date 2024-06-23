@@ -52,8 +52,8 @@ def login():
 def interact_with_dm():
     data = request.json
     response = bs.getPlayerInput(player_name = data["role"],
-                                player_input = data["text"],
-                                mode         = 0)
+                                 player_input = data["text"],
+                                 mode         = 0)
 
     return response
 
@@ -112,10 +112,10 @@ def get_player_skill():
 @game_routes.route('/merge', methods=['GET'])
 def get_an_item():
     data = request.json
-    response = bs.craftItems(player_name = data["role"], 
-                            mode         = data["mode"],
-                            num          = data["num"],
-                            description  = data["des"])
+    response = bs.craftItems(player_name = data["role"],
+                             mode        = data["mode"],
+                             num         = data["num"],
+                             description = data["des"])
 
     return jsonify({'text': response})
 
@@ -123,7 +123,7 @@ def get_an_item():
 @game_routes.route('/task_request', methods=['GET'])
 def customize_a_task():
     data = request.json
-    response = bs.taskCustomize(player_name = data["role"], 
+    response = bs.taskCustomize(player_name = data["role"],
                                 description = data["text"])
 
     return jsonify({'text': response})
@@ -141,7 +141,9 @@ def get_all_customized_tasks():
 @game_routes.route('/select_personal', methods=['GET'])
 def select_customized_task():
     data = request.json
-    task_response, task_bg = bs.selectTask(player_name=data["role"], task_name=data["task_name"], mode=1)
+    task_response, task_bg = bs.selectTask(player_name = data["role"],
+                                           task_name   = data["task_name"],
+                                           mode        = 1)
 
     return task_response
 
@@ -167,40 +169,16 @@ def launch_a_battle():
 
 @game_routes.route('/accept_challenge', methods=['GET'])
 def accept_a_battle():
-    """
-    We provide the data as:
-    {
-        "role": "player_name", 接受者用户名
-        "id": "battle_id"
-    }
-
-    The expected outcome as:
-    {
-        "id": battle_id
-    }
-    """
     data = request.json
-    battle_id = bs.acceptBattle(player=data["role"], battle_id=data["id"])
-    return jsonify({"status_code": 200})
+    status_code = bs.acceptBattle(player=data["role"], battle_id=data["id"])
+    return jsonify({"status_code": status_code})
 
 
 @game_routes.route('/reject_challenge', methods=['GET'])
 def reject_a_battle():
-    """
-    We provide the data as:
-    {
-        "role": "player_name", 拒绝者用户名
-        "id": "battle_id"
-    }
-
-    The expected outcome as:
-    {
-        "id": battle_id
-    }
-    """
     data = request.json
-    battle_id = bs.rejectBattle(player=data["role"], battle_id=data["id"])
-    return jsonify({"status_code": 200})
+    status_code = bs.rejectBattle(player=data["role"], battle_id=data["id"])
+    return jsonify({"status_code": status_code})
 
 
 @game_routes.route('/battle', methods=['GET'])
@@ -232,14 +210,14 @@ def battle_with_player():
 @game_routes.route('/get_list', methods=['GET'])
 def get_online_list():
     data = request.json
-    roles = bs.get_all_online_player()
+    roles = bs.getAllOnlinePlayers()
     return jsonify({'roles': roles})
 
 
 @game_routes.route('/refresh', methods=['GET'])
 def confirm_online():
     data = request.json
-    bs.online_confirm(data['role'])
+    bs.onlineConfirm(data['role'])
     id_list, role_list, accept_id = bs.getChallengeList(data['role'])
     role = None
     role_text = None

@@ -5,7 +5,7 @@ import requests
 
 from utils import *
 
-play_music()
+placeholder = play_music()
 
 def get_player_info():
     response = requests.get(url + 'status', json={
@@ -31,5 +31,5 @@ else:
 
 while True:
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)

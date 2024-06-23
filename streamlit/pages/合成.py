@@ -4,7 +4,7 @@ import requests
 from utils import *
 
 
-play_music()
+placeholder = play_music()
 
 # 定义一个映射表，将显示的文本映射到整数值
 options = {
@@ -47,5 +47,5 @@ else:
 
 while True:
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)

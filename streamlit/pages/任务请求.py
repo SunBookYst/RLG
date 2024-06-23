@@ -17,7 +17,7 @@ if 'sign_up' not in st.session_state:
 if 'chat_history_rq' not in st.session_state:
     st.session_state['chat_history_rq'] = []
 
-play_music()
+placeholder = play_music()
 
 
 def chat_with_dm(user_input):
@@ -100,7 +100,7 @@ else:
 
 while True:
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)
 
 

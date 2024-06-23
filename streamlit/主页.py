@@ -20,7 +20,7 @@ if 'chat_history' not in st.session_state:
 if 'condition_cha' not in st.session_state:
     st.session_state["condition_cha"] = 0
 
-play_music()
+placeholder=play_music()
 
 def login():
     """
@@ -207,7 +207,7 @@ else:
 
 while True:
     if st.session_state["logged_in"]:
-        refresh(st.session_state["username"])
+        refresh(st.session_state["username"],placeholder)
     time.sleep(5)
 
 

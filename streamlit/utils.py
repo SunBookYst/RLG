@@ -107,7 +107,7 @@ if ip == "0.0.0.0":
 url = f"http://{ip}:{port}/"
 ST_PATH = os.path.split(os.path.realpath(__file__))[0]
 
-def refresh(role):
+def refresh(role,placeholder):
     # pass
     if "battle_id" not in st.session_state:
         battle_id = None
@@ -119,18 +119,19 @@ def refresh(role):
     st.session_state.role_list = r['role_list']
     st.session_state.accept_id = r['accept_id']
     if len(st.session_state.accept_id)>0:
+        placeholder.markdown("### Challenge 🔴")
         st.session_state.condition_cha = 3
         st.session_state.battle_id = st.session_state.accept_id[0]
         st.session_state.battle_history = []
         st.rerun()
-    #TODO st.empty()
-    # with 
-    # if len(st.session_state.id_list)>0:
-        # st.sidebar.markdown(f"### Challenge 🔴")
+    if len(st.session_state.id_list)>0:
+        placeholder.markdown("### Challenge 🔴")
+    else:
+        placeholder.markdown("")
     if r['role']!=None:
         st.session_state.battle_history.append({'role':r['role'],"text":r["role_text"]})
-        st.session_state.battle_history.append({'role':"System","text":r["system_text"]})
-        # print(st.session_state.battle_history)
+        st.session_state.battle_history.append({'role':"s
+                                                ystem","text":r["system_text"]})
     if r['status'] == True:
         st.session_state.challenage_over = True
 
@@ -191,6 +192,7 @@ def play_music():
         </style>
         """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+    return st.sidebar.empty()
 
 
 def check_init_state(attributes:dict):
@@ -305,7 +307,7 @@ html_local_player = '''
         </div>
     </div>
     <div class="right">
-        <div><img src="data:image/png;base64,{avatar_base64}" style="height: 60px;"></div>
+        <div><img src="data:image/png;base64,{avatar_base64}" style="width: 60px; height: 60px; margin-right: 10px;"></div>
     </div>
 '''
 
