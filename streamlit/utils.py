@@ -130,8 +130,7 @@ def refresh(role,placeholder):
         placeholder.markdown("")
     if r['role']!=None:
         st.session_state.battle_history.append({'role':r['role'],"text":r["role_text"]})
-        st.session_state.battle_history.append({'role':"s
-                                                ystem","text":r["system_text"]})
+        st.session_state.battle_history.append({'role':"system","text":r["system_text"]})
     if r['status'] == True:
         st.session_state.challenage_over = True
 
