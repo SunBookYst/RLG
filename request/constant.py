@@ -30,14 +30,19 @@ TOKEN_UNK = ('eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsI
         'JqdGkiOiJjb3Y0b2oydms2Z2ZpNHJobjlnMCIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjbWZvNHJlY3A3ZmZuYzR2dXQwMCIsInNwYWNlX2lk'
         'IjoiY21mbzRyZWNwN2ZmbmM0dnVzdmciLCJhYnN0cmFjdF91c2VyX2lkIjoiY21mbzRyZWNwN2ZmbmM0dnV0MDAifQ.rZQvnlZtPzYMXwlL1-a'
         'eTZ9oED81ciASCwksdN5ui80Ryb7zqvRn6ffos5Nx8QCce19OND02zXJz37-6AWNfag')
+
+
+TOKEN_YSZ = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsImV4cCI6MTcyNjk5ODU3NCwiaWF0IjoxNzE5MjIyNTc0LCJqdGkiOiJjcHNrMmJocDJrMTIycjY4Mm9wZyIsInR5cCI6InJlZnJlc2giLCJzdWIiOiJjcDA1cWtxdG5uMHF0MzI3M29xMCIsInNwYWNlX2lkIjoiY3AwNXFrcXRubjBxdDMyNzNvcGciLCJhYnN0cmFjdF91c2VyX2lkIjoiY3AwNXFrcXRubjBxdDMyNzNvcDAifQ.YEXmBLjBQkq__s81s_Zvc_PGB_r4WBuvoMWI1AfPMlCJ__WHJsqdDb9drn47GHBaeqbTabvdW8l-J3zy58UYxg"
+
+
 TOKEN_HEADERS = {'Content-Type': 'application/json','Authorization': f"Bearer {TOKEN_CZY}"}
 
 
 TOKEN_POOL = [TOKEN_CZY, TOKEN_UNK]
 
 
-def get_valid_headers() -> dict:
-    token = choices(TOKEN_POOL, k=1)[0]
-    return {'Content-Type': 'application/json','Authorization': f"Bearer {token}"}
+def get_valid_headers():
+        token = choices(TOKEN_POOL, k=1)[0]
+        return {'Content-Type': 'application/json','Authorization': f"Bearer {token}"}
 
 
