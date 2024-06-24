@@ -51,7 +51,7 @@ def login():
 @game_routes.route('/main', methods=['GET'])
 def interact_with_dm():
     data = request.json
-    response = bs.getPlayerInput(player_name = data["role"],
+    response = bs.getPlayerInput(player_name  = data["role"],
                                  player_input = data["text"],
                                  mode         = 0)
 
@@ -126,7 +126,7 @@ def customize_a_task():
     response = bs.taskCustomize(player_name = data["role"],
                                 description = data["text"])
 
-    return jsonify({'text': response})
+    return response
 
 
 @game_routes.route('/task_info_personal', methods=['GET'])
@@ -141,7 +141,7 @@ def get_all_customized_tasks():
 @game_routes.route('/select_personal', methods=['GET'])
 def select_customized_task():
     data = request.json
-    task_response, task_bg = bs.selectTask(player_name = data["role"],
+    task_response = bs.selectTask(player_name = data["role"],
                                            task_name   = data["task_name"],
                                            mode        = 1)
 
