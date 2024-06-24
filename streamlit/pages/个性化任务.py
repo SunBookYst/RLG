@@ -13,7 +13,7 @@ if 'task_personal' not in st.session_state:
 if 'user_input_personal' not in st.session_state:
     st.session_state.user_input_personal = ""
 if 'task_list_personal' not in st.session_state:
-    st.session_state.task_list = []
+    st.session_state.task_list_personal = []
 if 'focus_on_task_personal' not in st.session_state:
     st.session_state.focus_on_task_personal = False
 if 'task_chat_history_personal' not in st.session_state:
@@ -39,6 +39,7 @@ def check_tasks():
 
     if response.status_code == 200:
         data = response.json()
+        print(data)
         st.session_state['task_list_personal'] = data["task_list"]
     else:
         st.write("Error: Unable to get task list.")
@@ -71,8 +72,8 @@ def play_a_task(user_input, selected_items,selected_skills):
     response = requests.get(url + 'feedback', json={
         'role': st.session_state['username'],
         'text': user_input,
-        'items': selected_items,
-        'skills':selected_skills,
+        'items': selected_items if "不使用装备" not in selected_items else [],
+        'skills':selected_skills if "不使用技能" not in selected_skills else [],
         'roles': st.session_state['roles_task_personal']
     })
 
@@ -151,7 +152,7 @@ else:
         if len(st.session_state['task_list_personal']) == 0:
             st.write("正在寻找任务...")
         else:
-            for task in st.session_state['task_list']:
+            for task in st.session_state['task_list_personal']:
                 if st.button(task):
                     st.session_state.condition_personal = 2
                     st.session_state.task_personal = task
@@ -159,7 +160,7 @@ else:
                     st.session_state.selected_skills_personal = []
                     st.session_state.selected_items_tmp_personal = []
                     st.session_state.selected_skills_tmp_personal = []
-                    st.sessiom_state.task_chat_history_personal = []
+                    st.session_state.task_chat_history_personal = []
                     st.rerun()
 
     # 玩家选择了某个任务，开始初始化
@@ -191,6 +192,7 @@ else:
             st.error("你最多只能选择5件物品！")
         else:
             if st.button("确认并选择技能"):
+                selected_items.append("不使用装备")
                 st.session_state.condition_personal = 5
                 st.rerun()
 
@@ -216,6 +218,7 @@ else:
             st.error("你最多只能选择5个技能！")
         else:
             if st.button("确认并开始任务"):
+                selected_skills.append("不使用技能")
                 st.session_state.condition_personal = 4
                 st.rerun()
 
@@ -225,12 +228,12 @@ else:
         st.session_state.focus_on_task_personal = True
         st.session_state.play_personal = play
         st.session_state.condition_personal = 1
-        st.session_state['task_chat_history'].append(("系统", st.session_state['play_personal']))
+        st.session_state['task_chat_history_personal'].append(("系统", st.session_state['play_personal']))
         st.rerun()
 
     # 玩家此时正在游玩某个任务，进入与任务系统的对话界面
     elif st.session_state.condition_personal == 1:
-        image_path = ST_PATH + f"/image/task_{st.session_state.task_personal}.png"
+        image_path = ST_PATH + f"/image/task_personal_{st.session_state.task_personal}.png"
         opacity = 0.5  # 调节透明度，范围从 0 到 1
         try:
             set_background(image_path, opacity)
@@ -238,7 +241,7 @@ else:
             image_path = ST_PATH + "/image/task1.png"
             set_background(image_path, opacity)
         # 显示对话历史
-        for message in st.session_state['task_chat_history']:
+        for message in st.session_state['task_chat_history_personal']:
             role, text = message
             if role is not None:
                 if role == st.session_state['username']:
@@ -264,27 +267,8 @@ else:
 
         st.session_state.selected_skills_tmp_personal = []
         st.session_state.selected_items_tmp_personal = []
-        # st.sidebar.title("本次使用的物品/技能")  # TODO
-        # st.sidebar.subheader("物品")
-        # selected_items = st.session_state.selected_items_personal
-        # for item in selected_items:
-        #     if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-        #         if item not in st.session_state.selected_items_tmp_personal:
-        #             st.session_state.selected_items_tmp_personal.append(item)
-        #     else:
-        #         if item in st.session_state.selected_items_tmp_personal:
-        #             st.session_state.selected_items_tmp_personal.remove(item)
 
-        # st.sidebar.subheader("技能")
-        # selected_skills = st.session_state.selected_skills_personal
-        # for skill in selected_skills:
-        #     if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-        #         if skill not in st.session_state.selected_skills_tmp_personal:
-        #             st.session_state.selected_skills_tmp_personal.append(skill)
-        #     else:
-        #         if skill in st.session_state.selected_skills_tmp_personal:
-        #             st.session_state.selected_skills_tmp_personal.remove(skill)
-        st.sidebar.title("本次使用的物品/技能")  # TODO
+        st.sidebar.title("本轮使用")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items_personal
 

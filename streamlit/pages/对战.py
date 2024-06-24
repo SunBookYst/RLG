@@ -37,8 +37,8 @@ def battle_with_other(user_input):
         'role': st.session_state["username"],
         'action': user_input,
         'id':st.session_state.battle_id,
-        'items':st.session_state.selected_items_tmp_cha.remove['不使用装备'],
-        'skills':st.session_state.selected_skills_tmp_cha.remove['不使用技能'],
+        'items':st.session_state.selected_items_tmp_cha if "不使用装备" not in st.session_state.selected_items_tmp_cha else [],
+        'skills':st.session_state.selected_skills_tmp_cha if "不使用技能" not in st.session_state.selected_skills_tmp_cha else [],
     })
     if response.status_code == 200:
         response = response.json()
@@ -233,12 +233,13 @@ else:
                     selected_items.remove(item)
 
         st.write(f"已选择的物品: {selected_items}")
-        selected_items.append("不使用装备") #NOTE
+        # selected_items.append("不使用装备") #NOTE
         # 限制选择的物品数量
-        if len(selected_items) > 6:
+        if len(selected_items) > 5:
             st.error("你最多只能选择5件物品！")
         else:
             if st.button("确认并选择技能"):
+                selected_items.append("不使用装备") #NOTE
                 st.session_state.condition_cha = 5
                 st.rerun()
 
@@ -258,12 +259,13 @@ else:
                     selected_skills.remove(skill)
 
         st.write(f"已选择的技能: {selected_skills}")
-        selected_skills.append("不使用技能")  #NOTE
+        # selected_skills.append("不使用技能")  #NOTE
         # 限制选择的技能数量
-        if len(selected_skills) > 6:
+        if len(selected_skills) > 5:
             st.error("你最多只能选择5个技能！")
         else:
             if st.button("确认并进入对战"):
+                selected_skills.append("不使用技能")
                 st.session_state.condition_cha = 2
                 st.rerun()
     elif st.session_state.condition_cha == 2:
@@ -279,7 +281,7 @@ else:
 
         st.session_state.selected_skills_tmp_cha = []
         st.session_state.selected_items_tmp_cha = []
-        st.sidebar.title("本次使用的物品/技能")  # TODO
+        st.sidebar.title("本轮使用")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items_cha
 

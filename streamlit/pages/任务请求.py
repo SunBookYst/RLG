@@ -37,13 +37,13 @@ def chat_with_dm(user_input):
 
     if response.status_code == 200:
         data = response.json()
-        role = data['role']
-        if role == None:
-            role = "系统"
+        role = '系统'
+        # if role == None:
+            # role = "系统"
         # user_message = f"{st.session_state['username']}: {user_input}"
         # dm_message = f'{role}: {data["text"]}'
         st.session_state['chat_history_rq'].append((st.session_state['username'],user_input))
-        st.session_state['chat_history_rq'].append((role,data['text']))
+        st.session_state['chat_history_rq'].append((role,str(data)))
     else:
         st.write("Error: Unable to communicate with the server.")
 

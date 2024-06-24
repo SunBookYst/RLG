@@ -71,8 +71,8 @@ def play_a_task(user_input, selected_items,selected_skills):
     response = requests.get(url + 'feedback', json={
         'role': st.session_state['username'],
         'text': user_input,
-        'items': selected_items.remove["不使用装备"],
-        'skills':selected_skills.remove["不使用技能"],
+        'items': selected_items if "不使用装备" not in selected_items else [],
+        'skills':selected_skills if "不使用技能" not in selected_skills else [],
         'roles': st.session_state['roles_task']
     })
 
@@ -192,6 +192,7 @@ else:
             st.error("你最多只能选择5件物品！")
         else:
             if st.button("确认并选择技能"):
+                selected_items.append("不使用装备")
                 st.session_state.condition = 5
                 st.rerun()
 
@@ -217,6 +218,7 @@ else:
             st.error("你最多只能选择5个技能！")
         else:
             if st.button("确认并开始任务"):
+                selected_skills.append("不使用技能")
                 st.session_state.condition = 4
                 st.rerun()
 
@@ -266,7 +268,7 @@ else:
         st.session_state.selected_skills_tmp = []
         st.session_state.selected_items_tmp = []
         
-        st.sidebar.title("本次使用的物品/技能")  # TODO
+        st.sidebar.title("本轮使用")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items
 
