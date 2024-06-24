@@ -10,12 +10,53 @@ import sys
 import requests
 import streamlit.components.v1 as components
 import random
+import base64
+import io
+from PIL import Image
+from io import BytesIO
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
 sys.path.insert(0, parent_dir_path)
 
 from util.constant import FLASK_SERVER
+
+def image_to_base64(image_bytes):
+    """将图片字节数据转换为base64字符串"""
+    return base64.b64encode(image_bytes).decode('utf-8')
+
+
+def compress_image(image, max_size_kb):
+    """压缩图片以确保其大小在指定的KB内"""
+    quality = 95  # 初始压缩质量
+    while True:
+        with io.BytesIO() as output:
+            # image.save(output, format='JPEG', quality=quality)
+            size_kb = output.tell() / 1024
+            if size_kb <= max_size_kb or quality <= 5:
+                # 如果图片大小小于等于目标大小，或者质量已经非常低，则停止压缩
+                return output.getvalue()
+            quality -= 5  # 逐步降低质量
+
+
+def save_base64_image_as_png(base64_string, save_path):
+    """
+    将 base64 格式的图片数据转换为 PNG 格式并保存到指定路径
+    
+    参数:
+    base64_string (str): 待转换的 base64 格式图片数据
+    save_path (str): 保存 PNG 图片的路径
+    """
+    # 解码 base64 字符串为二进制数据
+    image_data = base64.b64decode(base64_string)
+    
+    # 使用 BytesIO 将二进制数据转换为 PIL Image 对象
+    image = Image.open(BytesIO(image_data))
+    
+    # 保存图片为 PNG 格式
+    image.save(save_path, "PNG")
+    
+    print(f"图片已成功保存至: {save_path}")
 
 def md5_encrypt(password):
     # 创建一个 MD5 hash 对象

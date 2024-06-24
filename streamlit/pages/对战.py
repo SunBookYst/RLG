@@ -68,33 +68,13 @@ def battle_with_other(user_input):
 def render_battle_history():
     st.title("正在掐架中...")
 
-    # with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
-    #     me_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-    # with open(ST_PATH+f"/image/me.png" , "rb") as avatar_file:
-    #     other_avatar_base64 = base64.b64encode(avatar_file.read()).decode()
-
-    # for message in st.session_state["battle_history"]:
-    #     name, action = message["role"], message["text"]
-
-    #     if name == st.session_state['username']:
-    #         components.html(
-    #             html_local_player.format(content = action, avatar_base64 = me_avatar_base64),
-    #             height=50
-    #         )
-    #     elif name != "System":
-    #         components.html(
-    #             html_remote_player.format(content = action, avatar_base64 = other_avatar_base64),
-    #             height=50
-    #     )
-    #     else:
-    #         st.caption(action)
     for message in st.session_state['battle_history']:
         role, text = message['role'],message['text']
         if role is not None and role!="system":
             if role == st.session_state['username']:
-                avatar_url = ST_PATH + "/image/me.png"  # 用户头像路径
+                avatar_url = ST_PATH + f"/image/player_{st.session_state['username']}.png"  # 用户头像路径
             else:
-                avatar_url = ST_PATH + f"/image/{role}.png"  # DM头像路径
+                avatar_url = ST_PATH + f"/image/player_{role}.png"  # DM头像路径
             try:
                 with open(avatar_url, "rb") as avatar_file:
                     avatar_base64 = base64.b64encode(avatar_file.read()).decode()
@@ -163,6 +143,8 @@ else:
     r = requests.get(url = url+"get_list", json={"role":st.session_state["username"]})
     r = r.json()
     st.session_state["online_roles"] = r["roles"]
+    for idx,b64 in enumerate(r["image_data"]):
+        save_base64_image_as_png(b64,ST_PATH+"/image/"+f"player_{r['roles'][idx]}.png")
 
     if st.session_state.condition_cha == 0:
         st.title('Tasks')

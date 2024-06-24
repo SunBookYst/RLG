@@ -84,6 +84,7 @@ def show_login_page():
             if r['status_code']==200:
                 st.session_state['waiting'] = True
                 st.session_state['username'] = r['username']
+                save_base64_image_as_png(r["image_data"],ST_PATH+"/image/"+f"player_{st.session_state['username']}.png")
                 st.rerun()
             else:
                 st.write(f"登录出错，请检查，错误码是{r['status_code']}")
@@ -98,7 +99,18 @@ def show_login_page():
             st.rerun()
 
 def show_signup_page():
+    base64_image = None
     col1, col2, col3 = st.columns([1, 2, 1])
+    uploaded_file = st.file_uploader("在此上传头像", type=["png", "jpg", "jpeg"])
+    # if uploaded_file is not None:
+        # image = Image.open(uploaded_file)
+        # 压缩图片到100KB以内
+        # compressed_image_data = compress_image(image, max_size_kb=200)
+        # base64_image = image_to_base64(compressed_image_data)
+    if uploaded_file is not None:
+    # 将图片数据转换为 base64 格式
+        base64_image = base64.b64encode(uploaded_file.read()).decode()
+        # save_base64_image_as_png(base64_image,ST_PATH+"/image/"+f"player_{st.session_state['username']}.png")
     with col2:
         st.title('RLG GAME')
         email = st.text_input("Email")
@@ -117,13 +129,15 @@ def show_signup_page():
             login_button = st.button('Back')
 
 
-        if signup_button and username and password and email and password==password2:
+        if signup_button and username and password and email and password==password2 and base64_image!=None:
             #TODO 发送请求判断判断是否可以注册，否则xxx，待完善后台逻辑
             # try:
             func = 'signup'
-            r = requests.get(url = url+func, json = {'email':email,'username':username,'password':md5_encrypt(password),'ip':get_local_ip()+":"+get_local_port()})
+            r = requests.get(url = url+func, json = {'email':email,'username':username,'password':md5_encrypt(password),'ip':get_local_ip()+":"+get_local_port(),"image_data":base64_image})
             r = json.loads(r.text)
             if r['status_code']==200:
+                st.session_state.username = username
+                save_base64_image_as_png(base64_image,ST_PATH+"/image/"+f"player_{st.session_state['username']}.png")
                 st.session_state['waiting'] = True
                 st.session_state['username'] = username
                 st.session_state['sign_up'] = False
@@ -134,12 +148,6 @@ def show_signup_page():
         if login_button:
             st.session_state['sign_up'] = False
             st.rerun()
-                # st.write("与服务器的连接出错")
-
-            # st.session_state['waiting'] = True
-            # st.session_state['username'] = username
-            # st.session_state['sign_up'] = False
-            # st.rerun()
 
 def show_waiting_page():
     st.title('欢迎来到苍穹大陆')
@@ -162,7 +170,7 @@ def show_welcome_page():
         # st.write(message)
         role,text = parse_message(message)
         if role == st.session_state['username']:
-            avatar_url = ST_PATH+"/image/me.png"  # 用户头像路径
+            avatar_url = ST_PATH+f"/image/player_{st.session_state['username']}.png"  # 用户头像路径
         else:
             avatar_url = ST_PATH+f"/image/{role}.png"  # DM头像路径
         try:

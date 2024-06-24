@@ -63,7 +63,7 @@ def show_main_page():
         # st.write(message)
         role,text = message
         if role == st.session_state['username']:
-            avatar_url = ST_PATH+"/image/me.png"  # 用户头像路径
+            avatar_url = ST_PATH+f"/image/player_{st.session_state['username']}"  # 用户头像路径
         else:
             avatar_url = ST_PATH+f"/image/{role}.png"  # DM头像路径
         try:
