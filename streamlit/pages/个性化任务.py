@@ -264,26 +264,40 @@ else:
 
         st.session_state.selected_skills_tmp_personal = []
         st.session_state.selected_items_tmp_personal = []
+        # st.sidebar.title("本次使用的物品/技能")  # TODO
+        # st.sidebar.subheader("物品")
+        # selected_items = st.session_state.selected_items_personal
+        # for item in selected_items:
+        #     if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
+        #         if item not in st.session_state.selected_items_tmp_personal:
+        #             st.session_state.selected_items_tmp_personal.append(item)
+        #     else:
+        #         if item in st.session_state.selected_items_tmp_personal:
+        #             st.session_state.selected_items_tmp_personal.remove(item)
+
+        # st.sidebar.subheader("技能")
+        # selected_skills = st.session_state.selected_skills_personal
+        # for skill in selected_skills:
+        #     if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
+        #         if skill not in st.session_state.selected_skills_tmp_personal:
+        #             st.session_state.selected_skills_tmp_personal.append(skill)
+        #     else:
+        #         if skill in st.session_state.selected_skills_tmp_personal:
+        #             st.session_state.selected_skills_tmp_personal.remove(skill)
         st.sidebar.title("本次使用的物品/技能")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items_personal
-        for item in selected_items:
-            if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-                if item not in st.session_state.selected_items_tmp_personal:
-                    st.session_state.selected_items_tmp_personal.append(item)
-            else:
-                if item in st.session_state.selected_items_tmp_personal:
-                    st.session_state.selected_items_tmp_personal.remove(item)
+
+        selected_item = st.sidebar.radio("", selected_items, key="selected_item")
+
+        # 更新临时选择的项目列表
+        st.session_state.selected_items_tmp_personal = [selected_item] if selected_item else []
 
         st.sidebar.subheader("技能")
         selected_skills = st.session_state.selected_skills_personal
-        for skill in selected_skills:
-            if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-                if skill not in st.session_state.selected_skills_tmp_personal:
-                    st.session_state.selected_skills_tmp_personal.append(skill)
-            else:
-                if skill in st.session_state.selected_skills_tmp_personal:
-                    st.session_state.selected_skills_tmp_personal.remove(skill)
+        selected_skill = st.sidebar.radio("", selected_skills, key="selected_skill")
+        # 更新临时选择的项目列表
+        st.session_state.selected_skills_tmp_personal = [selected_skill] if selected_skill else []
 
         # 用户输入
         st.write("请输入你的行动指令:")

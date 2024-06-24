@@ -71,8 +71,8 @@ def play_a_task(user_input, selected_items,selected_skills):
     response = requests.get(url + 'feedback', json={
         'role': st.session_state['username'],
         'text': user_input,
-        'items': selected_items,
-        'skills':selected_skills,
+        'items': selected_items.remove["不使用装备"],
+        'skills':selected_skills.remove["不使用技能"],
         'roles': st.session_state['roles_task']
     })
 
@@ -265,26 +265,21 @@ else:
 
         st.session_state.selected_skills_tmp = []
         st.session_state.selected_items_tmp = []
+        
         st.sidebar.title("本次使用的物品/技能")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items
-        for item in selected_items:
-            if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-                if item not in st.session_state.selected_items_tmp:
-                    st.session_state.selected_items_tmp.append(item)
-            else:
-                if item in st.session_state.selected_items_tmp:
-                    st.session_state.selected_items_tmp.remove(item)
+
+        selected_item = st.sidebar.radio("", selected_items, key="selected_item")
+
+        # 更新临时选择的项目列表
+        st.session_state.selected_items_tmp = [selected_item] if selected_item else []
 
         st.sidebar.subheader("技能")
         selected_skills = st.session_state.selected_skills
-        for skill in selected_skills:
-            if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-                if skill not in st.session_state.selected_skills_tmp:
-                    st.session_state.selected_skills_tmp.append(skill)
-            else:
-                if skill in st.session_state.selected_skills_tmp:
-                    st.session_state.selected_skills_tmp.remove(skill)
+        selected_skill = st.sidebar.radio("", selected_skills, key="selected_skill")
+        # 更新临时选择的项目列表
+        st.session_state.selected_skills_tmp = [selected_skill] if selected_skill else []
 
         # 用户输入
         st.write("请输入你的行动指令:")

@@ -37,8 +37,8 @@ def battle_with_other(user_input):
         'role': st.session_state["username"],
         'action': user_input,
         'id':st.session_state.battle_id,
-        'items':st.session_state.selected_items_tmp_cha,
-        'skills':st.session_state.selected_skills_tmp_cha,
+        'items':st.session_state.selected_items_tmp_cha.remove['不使用装备'],
+        'skills':st.session_state.selected_skills_tmp_cha.remove['不使用技能'],
     })
     if response.status_code == 200:
         response = response.json()
@@ -125,10 +125,10 @@ def render_battle_history():
 # 结束任务,目前需要正常结束才可清除历史角色
 def end_task():
     st.session_state.condition_cha = 0
-    for role in st.session_state.roles_task_cha:
-        if role!="系统":
-            os.remove(ST_PATH + f"/image/{role}.png")
-    st.session_state.roles_task_cha = []
+    # for role in st.session_state.roles_task_cha:
+        # if role!="系统":
+            # os.remove(ST_PATH + f"/image/{role}.png")
+    # st.session_state.roles_task_cha = []
 
 # 获取背包信息
 def get_bag_info():
@@ -233,9 +233,9 @@ else:
                     selected_items.remove(item)
 
         st.write(f"已选择的物品: {selected_items}")
-
+        selected_items.append("不使用装备") #NOTE
         # 限制选择的物品数量
-        if len(selected_items) > 5:
+        if len(selected_items) > 6:
             st.error("你最多只能选择5件物品！")
         else:
             if st.button("确认并选择技能"):
@@ -258,9 +258,9 @@ else:
                     selected_skills.remove(skill)
 
         st.write(f"已选择的技能: {selected_skills}")
-
+        selected_skills.append("不使用技能")  #NOTE
         # 限制选择的技能数量
-        if len(selected_skills) > 5:
+        if len(selected_skills) > 6:
             st.error("你最多只能选择5个技能！")
         else:
             if st.button("确认并进入对战"):
@@ -287,29 +287,12 @@ else:
 
         # 更新临时选择的项目列表
         st.session_state.selected_items_tmp_cha = [selected_item] if selected_item else []
-        # for item in selected_items:
-        #     if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-        #         if item not in st.session_state.selected_items_tmp_cha:
-        #             st.session_state.selected_items_tmp_cha = []
-        #             st.session_state.selected_items_tmp_cha.append(item)
-        #     else:
-        #         if item in st.session_state.selected_items_tmp_cha:
-        #             st.session_state.selected_items_tmp_cha.remove(item)
 
         st.sidebar.subheader("技能")
         selected_skills = st.session_state.selected_skills_cha
         selected_skill = st.sidebar.radio("", selected_skills, key="selected_skill")
         # 更新临时选择的项目列表
         st.session_state.selected_skills_tmp_cha = [selected_skill] if selected_skill else []
-        # for skill in selected_skills:
-        #     if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-        #         if skill not in st.session_state.selected_skills_tmp_cha:
-        #             st.session_state.selected_skills_tmp_cha = []
-        #             st.session_state.selected_skills_tmp_cha.append(skill)
-        #     else:
-        #         if skill in st.session_state.selected_skills_tmp_cha:
-        #             # st.session_state.selected_skills_tmp_cha = []
-        #             st.session_state.selected_skills_tmp_cha.remove(skill)
         if st.session_state.challenage_over == True:
             if st.button("结束战斗"):
                 end_task()

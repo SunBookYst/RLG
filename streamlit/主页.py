@@ -109,10 +109,10 @@ def show_signup_page():
             password2 = st.text_input("Confirm Password", type="password")
         with col_exclamation:
             if password != password2:
-                st.write("Pls Check!")
+                st.write("Check!")
         col21, col22 = st.columns([1,1])
         with col21:
-            signup_button = st.button('Sign up and Log in')
+            signup_button = st.button('Sign up&Log in')
         with col22:
             login_button = st.button('Back')
 

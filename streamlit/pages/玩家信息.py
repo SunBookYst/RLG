@@ -24,10 +24,10 @@ if not st.session_state['logged_in']:
     st.page_link("主页.py", label="Go to login")
 else:
     attribute = get_player_info()
-    if st.button('refresh'):
+    if st.button('刷新'):
         st.rerun()
 
-    st.write(attribute)
+    st.write(attribute["attribute"])
 
 while True:
     if st.session_state["logged_in"]:

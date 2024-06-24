@@ -38,13 +38,13 @@ if not st.session_state['logged_in']:
 else:
     equipment = get_bag_info()
     skill = get_skill_info()
-    if st.button('refresh'):
+    if st.button('刷新'):
         st.rerun()
 
-    st.write("装备栏")
-    st.write(equipment)
-    st.write("技能槽")
-    st.write(skill)
+    st.markdown("**装备栏**")
+    st.write(equipment["equipments"])
+    st.write("**技能槽**")
+    st.write(skill["skills"])
 
 while True:
     if st.session_state["logged_in"]:
