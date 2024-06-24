@@ -37,8 +37,8 @@ def battle_with_other(user_input):
         'role': st.session_state["username"],
         'action': user_input,
         'id':st.session_state.battle_id,
-        'items':[],
-        'skills':[],
+        'items':st.session_state.selected_items_tmp_cha,
+        'skills':st.session_state.selected_skills_tmp_cha,
     })
     if response.status_code == 200:
         response = response.json()
@@ -282,23 +282,34 @@ else:
         st.sidebar.title("本次使用的物品/技能")  # TODO
         st.sidebar.subheader("物品")
         selected_items = st.session_state.selected_items_cha
-        for item in selected_items:
-            if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
-                if item not in st.session_state.selected_items_tmp_cha:
-                    st.session_state.selected_items_tmp_cha.append(item)
-            else:
-                if item in st.session_state.selected_items_tmp_cha:
-                    st.session_state.selected_items_tmp_cha.remove(item)
+
+        selected_item = st.sidebar.radio("", selected_items, key="selected_item")
+
+        # 更新临时选择的项目列表
+        st.session_state.selected_items_tmp_cha = [selected_item] if selected_item else []
+        # for item in selected_items:
+        #     if st.sidebar.checkbox(item, value=True, key=f"item_{item}"):
+        #         if item not in st.session_state.selected_items_tmp_cha:
+        #             st.session_state.selected_items_tmp_cha = []
+        #             st.session_state.selected_items_tmp_cha.append(item)
+        #     else:
+        #         if item in st.session_state.selected_items_tmp_cha:
+        #             st.session_state.selected_items_tmp_cha.remove(item)
 
         st.sidebar.subheader("技能")
         selected_skills = st.session_state.selected_skills_cha
-        for skill in selected_skills:
-            if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
-                if skill not in st.session_state.selected_skills_tmp_cha:
-                    st.session_state.selected_skills_tmp_cha.append(skill)
-            else:
-                if skill in st.session_state.selected_skills_tmp_cha:
-                    st.session_state.selected_skills_tmp_cha.remove(skill)
+        selected_skill = st.sidebar.radio("", selected_skills, key="selected_skill")
+        # 更新临时选择的项目列表
+        st.session_state.selected_skills_tmp_cha = [selected_skill] if selected_skill else []
+        # for skill in selected_skills:
+        #     if st.sidebar.checkbox(skill, value=True, key=f"skill_{skill}"):
+        #         if skill not in st.session_state.selected_skills_tmp_cha:
+        #             st.session_state.selected_skills_tmp_cha = []
+        #             st.session_state.selected_skills_tmp_cha.append(skill)
+        #     else:
+        #         if skill in st.session_state.selected_skills_tmp_cha:
+        #             # st.session_state.selected_skills_tmp_cha = []
+        #             st.session_state.selected_skills_tmp_cha.remove(skill)
         if st.session_state.challenage_over == True:
             if st.button("结束战斗"):
                 end_task()

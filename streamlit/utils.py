@@ -98,7 +98,7 @@ def start_flask_server(port):
     return server_process
 
 # ip, port = FLASK_SERVER
-ip = "127.0.0.1"
+ip = "10.47.34.199"
 port = "5000"
 
 if ip == "0.0.0.0":
