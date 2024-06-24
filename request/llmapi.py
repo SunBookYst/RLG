@@ -4,6 +4,7 @@ import time
 import openai
 import json
 from tenacity import retry, stop_after_attempt
+from typing import List,Dict
 
 from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
 from request.constant import MAX_WINDOW
@@ -39,7 +40,7 @@ class LLMAPI(object):
         self.kimi_id = 'null'
 
     @retry(stop=stop_after_attempt(3))
-    def generateResponse(self, prompt: str, return_json: bool = False, stream: bool = False):
+    def generateResponse(self, prompt: str, return_json: bool = False, stream: bool = False) -> str|Dict:
         """
         Generate a result from a given prompt.
 
@@ -157,13 +158,12 @@ class LLMAPI(object):
                         print("Failed to decode JSON:", data_str)
         return result, kimi_id
     
-    def getAllConversation(self):
+    def getAllConversation(self) -> List[Dict[str, str]]:
         """
-        
         Get the conversation of the whole sessions.
 
         Returns:
-            List[str{str:str}]: the conversation list, formatting as:
+            List[dict{str:str}]: the conversation list, formatting as:
             {
                 'role': 'user'/'assistant',
                 'content': [the message in str]
@@ -172,7 +172,7 @@ class LLMAPI(object):
         return self.chat_history
 
 
-def initialize_llm(prompt, type="KIMI-server"):
+def initialize_llm(prompt, type="KIMI-server") -> LLMAPI:
     print("Initializing...")
     model = LLMAPI(model_name = type)
     intro = model.generateResponse(prompt, stream = True)

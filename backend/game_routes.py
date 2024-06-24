@@ -93,20 +93,20 @@ def get_all_tasks():
 def get_player_info():
     data = request.json
     # well that's...
-    response = bs.getPlayerInfo(data["role"])
+    response = bs.getPlayerProperty(data["role"])
     return jsonify({'attribute': response})
 
 
 @game_routes.route('/bag', methods=['GET'])
 def get_player_bag():
     data = request.json
-    return jsonify({"equipments": bs.player_dict[data['role']].bag})
+    return jsonify({"equipments": bs.name2player_dict[data['role']].bag})
 
 
 @game_routes.route('/skill', methods=['GET'])
 def get_player_skill():
     data = request.json
-    return jsonify({"skills": bs.player_dict[data['role']].skills})
+    return jsonify({"skills": bs.name2player_dict[data['role']].skills})
 
 
 @game_routes.route('/merge', methods=['GET'])

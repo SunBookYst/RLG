@@ -32,7 +32,17 @@ GENERATE_BACKGROUND_PROMPT = get_prompt("./prompts/txt2img_background.txt")
 
 BATTLE_PROMPT = get_prompt("./prompts/battle.txt")
 
-
-def SUM_PROMPT(winner, loser):
-    return (f"战斗已经分出了胜负，请你根据参赛选手的表现为他们分配奖励！注意你的输出格式{{ {winner}:{{龙眼:(龙眼数量), 凤羽:(凤羽数量)}},"
-            f"{loser}:{{龙眼:(龙眼数量), 凤羽:(凤羽数量)}} }}")
+SUM_PROMPT_TEMPLATE = """
+战斗已经分出了胜负，请你根据参赛选手的表现为他们分配奖励！
+你的输出格式形式为：
+{{
+    {winner}:{{
+        龙眼:(龙眼数量), 
+        凤羽:(凤羽数量)
+    }},
+    {loser}:{{
+        龙眼:(龙眼数量), 
+        凤羽:(凤羽数量)
+    }}
+}}
+"""
