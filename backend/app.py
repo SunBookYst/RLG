@@ -10,4 +10,4 @@ app.register_blueprint(game_routes)
 
 ip, port = FLASK_SERVER
 
-app.run(host=ip, port=port)
+app.run(host=ip, port=port, threaded=True)

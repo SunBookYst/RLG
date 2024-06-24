@@ -7,31 +7,19 @@ import pickle
 import json
 import os
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
-sys.path.insert(0, parent_dir_path)
-
 from request import LLMAPI, StableDiffusion
+from request.constant import get_valid_headers
 
 from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE, TASK_DISTRIBUTION
 
 from util.prompt import (TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PROMPT, DM_PROMPT, JUDGE_PROMPT,
-                         ACT_PROMPT, BATTLE_PROMPT)
+                         ACT_PROMPT, BATTLE_PROMPT, SUM_PROMPT)
 
-# from subsenario.utils import initialize_llm
-from request import LLMAPI, StableDiffusion
+# TODO
+# 玩家资源消耗问题
 
-from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE
-from util.constant import TASK_DISTRIBUTION
 
-from util.prompt import TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PROMPT
-
-from util.prompt import DM_PROMPT
-
-from util.prompt import JUDGE_PROMPT, ACT_PROMPT
-
-from util.prompt import BATTLE_PROMPT
-
+sys.path.append('..')
 
 
 # debug模式
@@ -57,6 +45,10 @@ def fixResponse(origin_text: str, attr: str):
     Returns:
         str: the fixed text.
     """
+    lindex = origin_text.find('{')
+    rindex = origin_text.find('}')
+    if lindex != -1 and rindex != -1:
+        origin_text = origin_text[lindex: rindex+1]
     
     index = origin_text.find(attr)
     if index == -1:
@@ -84,7 +76,7 @@ def initialize_llm(prompt, type: str = "KIMI-server"):
         LLMAPI: the LLMAPI class.
     """
     # print("Initializing...")
-    model = LLMAPI(model_name=type)
+    model = LLMAPI(model_name=type, headers=get_valid_headers())
     intro = model.generateResponse(prompt, stream=True)
     return model
 
@@ -334,8 +326,8 @@ class Player(object):
             }
         """
         result = {
-            "equipment": list(set(equipment_list) & set(self.bag)),
-            "skill": list(set(skill_list) & set(self.skills))
+            "equipment": [self.bag[equip_name] for equip_name in equipment_list],
+            "skill": [self.skills[skill_name] for skill_name in skill_list]
         }
 
         return result
@@ -347,7 +339,7 @@ class Battle(object):
         self.battle_id: str = battle_id
         # 战斗创建时间，便于清理超时挑战
         self.create_time: datetime = datetime.now()
-        # 0：等待接受，1：已接受， 2：已拒绝， 3：正在进行， 4：已结束
+        # 0：等待接受，1：已接受， 2：已拒绝， 3：正在进行， 4：已结束， 5：意外结束
         self.status: int = 0
 
         # 属于该战斗的系统
@@ -358,6 +350,7 @@ class Battle(object):
         # 被挑战者
         self.target: str = player2
         self.target_role: Player = player2_role
+        self.roles: dict = {player1: self.challenger_role, player2: self.target_role}
         # 玩家对，便于查找对手是谁
         self.pair: dict = {player1: player2, player2: player1}
 
@@ -396,6 +389,26 @@ class Battle(object):
         if DEBUG:
             print(res)
 
+        if res['judge'] != "平局":
+            self.record[res['judge']] += 1
+
+        battle_status = False
+        # 率先赢下5轮者获胜
+        if self.record[opponent] == 1 or self.record[player] == 1:
+            battle_status = True
+            self.status = 4
+
+            # 确定胜者和败者
+            if self.record[opponent] == 1:
+                winner = opponent
+                loser = player
+            else:
+                winner = player
+                loser = opponent
+
+            self.settleBattle(winner, loser)
+            res['description'] += f"【{winner}】赢得了胜利！"
+
         self.last_round = self.now_round
         self.last_round['details']['sys'] = res["description"]
         self.last_round[player] = 1  # 已阅
@@ -403,16 +416,12 @@ class Battle(object):
 
         self.now_round = {'details': {}}
 
-        if res['judge'] != "平局":
-            self.record[res['judge']] += 1
-
-        battle_status = False
-        # 率先赢下5轮者获胜
-        if self.record[opponent] == 5 or self.record[player] == 5:
-            battle_status = True
-            self.status = 4
-
         return res['description'], battle_status
+
+    def settleBattle(self, winner, loser):
+        res = json.loads(self.sys.generateResponse(SUM_PROMPT(winner, loser)))
+        self.roles[winner].getReward(res[winner])
+        self.roles[loser].getReward(res[loser])
 
 
 class BackEndSystem(object):
@@ -462,7 +471,7 @@ class BackEndSystem(object):
         # Why doing so?
         # sd内部有llm
         self.sd: StableDiffusion = StableDiffusion()
-        # self.sd.initialize()
+        self.sd.initialize()
 
         # 任务队列
         self.task_queue = {}
@@ -578,7 +587,7 @@ class BackEndSystem(object):
         task["player"] = None
         return task
 
-    def taskCustomize(self, player_name, description="任意"):
+    def taskCustomize(self, player_name: str, description="任意"):
         """
         Customize the task based on the description. Note that this task is private and not visible for other players.
 
@@ -597,7 +606,7 @@ class BackEndSystem(object):
 
         player.personal_task_queue[task['task_name']] = task
 
-        return 200
+        return task
 
     def getPlayerInput(self, 
                        player_name : str,
@@ -646,8 +655,7 @@ class BackEndSystem(object):
                 if play["role"] and play["role"] not in roles:
                     debug_print("generating img...")
                     description = f"【场景】{play['text']}\n【需要描绘的角色】{play['role']}"
-                    # img = self.sd.standard_workflow(description, 1)
-                    img = None
+                    img = self.sd.standard_workflow(description, 1)
                     play["image_data"] = img
 
                 # 游戏结束，进入结算
@@ -691,8 +699,7 @@ class BackEndSystem(object):
                 task = player.personal_task_queue[task_name]
 
         play = str(task)
-        # task_img = self.sd.standard_workflow(play, 2)
-        task_img = None
+        task_img = self.sd.standard_workflow(play, 2)
 
         with LOCK:
             task["occupied"] = True
@@ -777,8 +784,7 @@ class BackEndSystem(object):
 
             debug_print(response)
 
-            skill = json.loads(response)
-            response = fixResponse(response, "effect")
+            skill = json.loads(fixResponse(response, "effect"))
             player.skills[skill['name']] = skill
 
             return skill
@@ -793,7 +799,7 @@ class BackEndSystem(object):
         Returns:
             List[str]: the result.
         """
-        tasks = [task["task_name"] for task in self.task_queue.values() if task["occupied"] == False]
+        tasks = [task["task_name"] for task in self.task_queue.values() if task["occupied"] is False]
 
         return tasks
 
@@ -845,14 +851,15 @@ class BackEndSystem(object):
 
     def acceptBattle(self, player, battle_id):
         try:
-            battle_sys: LLMAPI = initialize_llm(BATTLE_PROMPT)
-            battle: Battle = self.battle_queue[battle_id]
             with LOCK:
+                battle_sys: LLMAPI = initialize_llm(BATTLE_PROMPT)
+                battle: Battle = self.battle_queue[battle_id]
+
                 battle.status = 1
                 battle.sys = battle_sys
 
-            battle.challenger_role.challenge_queue[battle_id]['status'] = 1
-            battle.target_role.challenge_queue[battle_id]['status'] = 1
+                battle.challenger_role.challenge_queue[battle_id]['status'] = 1
+                battle.target_role.challenge_queue[battle_id]['status'] = 1
             return 200
         except:
             return 404
@@ -898,9 +905,9 @@ class BackEndSystem(object):
                     print('successful round!')
                     print(opponent, fight[opponent], des, battle_status)
 
-                return opponent, fight[opponent], des, battle_status
+                return opponent, fight[opponent]['action'], des, battle_status
 
-            return opponent, "对手正在出招", "请耐心等待对手", battle_status
+            return opponent, "正在出招", "请耐心等待对手", battle_status
 
     def getOnlinePlayers(self):
         return list(self.online_player.keys())
@@ -917,37 +924,46 @@ class BackEndSystem(object):
 
         # 我挑战别人
         accept_id = []
-        for battle_id, battle_info in player_role.challenge_queue.items():
-            if battle_info['target'] == player:
-                id_list.append(battle_id)
-                role_list.append(battle_info['challenger'])
 
-            if battle_info['status'] == 1 and battle_info['challenger'] == player:
-                player_role.challenge_queue[battle_id]['status'] = 3  # 已经接受过
-                accept_id.append(battle_id)
+        try:
+            for battle_id, battle_info in player_role.challenge_queue.items():
+                if battle_info['target'] == player and battle_info['status'] == 0:
+                    id_list.append(battle_id)
+                    role_list.append(battle_info['challenger'])
 
+                if battle_info['status'] == 1 and battle_info['challenger'] == player:
+                    with LOCK:
+                        player_role.challenge_queue[battle_id]['status'] = 3  # 已经接受过
+                    accept_id.append(battle_id)
+        except:
+            id_list = []
+            role_list = []
+            accept_id = []
         return id_list, role_list, accept_id
 
     def getBattleInfo(self, player: str, battle_id: str):
-        battle: Battle = self.battle_queue[battle_id]
         status = False
-        if battle.record[player] == 5 or battle.record[battle.pair[player]] == 5:
-            status = True
-            battle.status = 4
-        if battle.last_round[player] == 0:
-            battle.last_round[player] = 1
-            return (battle.pair[player],
-                    battle.last_round['details'][battle.pair[player]]['action'],
-                    battle.last_round['details']['sys'],
-                    status)
-        else:
+        try:
+            battle: Battle = self.battle_queue[battle_id]
+            if battle.status == 4 or battle.status == 5:
+                status = True
+            if battle.last_round[player] == 0:
+                battle.last_round[player] = 1
+                return (battle.pair[player],
+                        battle.last_round['details'][battle.pair[player]]['action'],
+                        battle.last_round['details']['sys'],
+                        status)
+            else:
+                return None, None, None, status
+
+        except:
             return None, None, None, status
 
 
 # 负责管理后台系统
 class MultiThreadManager:
     def __init__(self, backend_sys: BackEndSystem):
-        self.backend_sys = backend_sys
+        self.backend_sys: BackEndSystem = backend_sys
 
         self.threads = []
         self.running = True
@@ -963,7 +979,7 @@ class MultiThreadManager:
         self.create_and_start_thread(self.clear_offline_players, "OfflinePlayerClearThread")
 
         # 创建并启动战斗队列管理线程
-        self.create_and_start_thread(self.clear_rejected_battle, "BattleQueueClearThread")
+        self.create_and_start_thread(self.clear_disabled_battle, "BattleQueueClearThread")
 
     def create_and_start_thread(self, target, name):
         thread = threading.Thread(target=target, name=name)
@@ -1006,9 +1022,16 @@ class MultiThreadManager:
                 online_players = list(self.backend_sys.online_player.keys())
                 time_now = datetime.now()
                 for name in online_players:
-                    if time_now - self.backend_sys.online_player[name] > timedelta(seconds=10):
+                    if time_now - self.backend_sys.online_player[name] > timedelta(seconds=30):
                         with self.lock:
                             last_time = self.backend_sys.online_player.pop(name)
+
+                        player: Player = self.backend_sys.player_dict[name]
+                        for battle_id in player.challenge_queue.keys():
+                            battle: Battle = self.backend_sys.battle_queue[battle_id]
+                            battle.last_round['details']['sys'] = f"玩家【{name}】逃跑了。"
+                            battle.status = 5
+
                         if not os.path.isdir('./saves'):
                             os.makedirs('./saves')
                         filename = f'./saves/{name}.pkl'
@@ -1019,14 +1042,15 @@ class MultiThreadManager:
                 print(f"Error in clear_offline_players: {e}")
             time.sleep(30)
 
-    def clear_rejected_battle(self):
+    def clear_disabled_battle(self):
         while self.running:
             try:
                 existing_battle = list(self.backend_sys.battle_queue.keys())
                 for battle_id in existing_battle:
-                    if (self.backend_sys.battle_queue[battle_id].status == 0 and
+                    if ((self.backend_sys.battle_queue[battle_id].status == 0 and
                             datetime.now() - self.backend_sys.battle_queue[battle_id].create_time > timedelta(
-                                minutes=1)):
+                                minutes=1)) or
+                            (self.backend_sys.battle_queue[battle_id].status == 5)):
                         moved_battle: Battle = self.backend_sys.battle_queue.pop(battle_id)
 
                         moved_battle.challenger_role.challenge_queue.pop(battle_id)
