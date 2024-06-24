@@ -26,9 +26,10 @@ class LLMAPI(object):
         - generateResponse(prompt, return_json = False): Generate a response from the LLM model.
     """
     
-    def __init__(self, model_name, initial_prompt=""):
+    def __init__(self, model_name, initial_prompt="", headers = TOKEN_HEADERS):
         self.model_name = model_name
         self.initial_prompt = initial_prompt
+        self.headers = headers
         
         if initial_prompt == '':
             self.chat_history = []
@@ -101,7 +102,7 @@ class LLMAPI(object):
                 "stream": stream
             }
 
-            response = requests.post(url=SERVER_URL, headers=TOKEN_HEADERS, json=data, stream=stream)
+            response = requests.post(url=SERVER_URL, headers=self.headers, json=data, stream=stream)
             if response.status_code != 200:
                 raise Exception("Server error")
 
