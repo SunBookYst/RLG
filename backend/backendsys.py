@@ -6,6 +6,7 @@ import threading
 import pickle
 import json
 import os
+import base64
 
 from request import LLMAPI, StableDiffusion
 from request.constant import get_valid_headers
@@ -121,10 +122,12 @@ class Player(object):
                  DM_model: LLMAPI,
                  eg_model: LLMAPI,
                  sg_model: LLMAPI,
-                 tc_model: LLMAPI):
+                 tc_model: LLMAPI,
+                 portrait: base64):
         
         self.name    : str = name
         self.email   : str = email
+        self.portrait: base64 = portrait
         self.password: str = password
         self.feature : str = "【苍穹】大陆上的游戏角色，目前是一个健全的人"
         self.property: dict = {
@@ -479,7 +482,7 @@ class BackEndSystem(object):
         # 战斗队列
         self.battle_queue = {}
 
-    def registerPlayer(self, name, email, password):
+    def registerPlayer(self, name, email, password, portrait):
         """
         Add a new instance of Player in the DM.
         The name and the feature are firstly checked.
@@ -505,7 +508,7 @@ class BackEndSystem(object):
         skill_generator: LLMAPI = initialize_llm(SKILL_PROMPT)
         task_custom: LLMAPI = initialize_llm(CUSTOM_PROMPT)
 
-        new_player: Player = Player(name, email, password, dm_model, equipment_generator, skill_generator, task_custom)
+        new_player: Player = Player(name, email, password, dm_model, equipment_generator, skill_generator, task_custom, portrait)
 
         with LOCK:
             # regist the user in the list.
@@ -823,8 +826,12 @@ class BackEndSystem(object):
         Return all the online players.
         """
 
-        result = list(self.online_player.keys())
-        return result
+        name_list = []
+        image_list = []
+        for player_name in self.online_player.keys():
+            name_list.append(player_name)
+            image_list.append(self.player_dict[player_name].portrait)
+        return name_list, image_list
 
     def createBattle(self, player1, player2):
         battle_id = player1+player2
