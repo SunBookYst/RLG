@@ -1,5 +1,7 @@
 from openai import OpenAI
 
+from random import choices
+
 MAX_WINDOW = 5
 
 # GPT-series api-key from free gpt api.
@@ -29,3 +31,13 @@ TOKEN_UNK = ('eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ1c2VyLWNlbnRlciIsI
         'IjoiY21mbzRyZWNwN2ZmbmM0dnVzdmciLCJhYnN0cmFjdF91c2VyX2lkIjoiY21mbzRyZWNwN2ZmbmM0dnV0MDAifQ.rZQvnlZtPzYMXwlL1-a'
         'eTZ9oED81ciASCwksdN5ui80Ryb7zqvRn6ffos5Nx8QCce19OND02zXJz37-6AWNfag')
 TOKEN_HEADERS = {'Content-Type': 'application/json','Authorization': f"Bearer {TOKEN_CZY}"}
+
+
+TOKEN_POOL = [TOKEN_CZY, TOKEN_UNK]
+
+
+def get_valid_headers() -> dict:
+    token = choices(TOKEN_POOL, k=1)[0]
+    return {'Content-Type': 'application/json','Authorization': f"Bearer {token}"}
+
+
