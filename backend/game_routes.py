@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backendsys import BackEndSystem, MultiThreadManager
 
-
 bs = BackEndSystem()
 monitor = MultiThreadManager(bs)
 

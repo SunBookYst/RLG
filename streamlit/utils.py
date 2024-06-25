@@ -1,52 +1,49 @@
 import os
-import base64
+import io
+from io import BytesIO
 import re
-import time
-import streamlit as st
-import hashlib
-import socket
-import subprocess
 import sys
-import requests
-import streamlit.components.v1 as components
+from PIL import Image
+import socket
+import hashlib
 import random
 import base64
-import io
-from PIL import Image
-from io import BytesIO
+import requests
+import subprocess
+
+from typing import Tuple
+
+import streamlit as st
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
 sys.path.insert(0, parent_dir_path)
 
-from util.constant import FLASK_SERVER
+from util.constant import SERVER
 
-def image_to_base64(image_bytes):
-    """将图片字节数据转换为base64字符串"""
+def image_to_base64(image_bytes:bytes) -> str:
+    """
+    Transform the image bytes to base64 string.
+
+    Args:
+        image_bytes (bytes): the image bytes.
+
+    Returns:
+        str: the base64 string.
+    """
     return base64.b64encode(image_bytes).decode('utf-8')
 
 
-def compress_image(image, max_size_kb):
-    """压缩图片以确保其大小在指定的KB内"""
-    quality = 95  # 初始压缩质量
-    while True:
-        with io.BytesIO() as output:
-            # image.save(output, format='JPEG', quality=quality)
-            size_kb = output.tell() / 1024
-            if size_kb <= max_size_kb or quality <= 5:
-                # 如果图片大小小于等于目标大小，或者质量已经非常低，则停止压缩
-                return output.getvalue()
-            quality -= 5  # 逐步降低质量
-
-
-def save_base64_image_as_png(base64_string, save_path):
+def save_base64_image_as_png(base64_string:str, save_path:str):
     """
-    将 base64 格式的图片数据转换为 PNG 格式并保存到指定路径
+    Transform the base64 string to image bytes and save it as a PNG file.
     
-    参数:
-    base64_string (str): 待转换的 base64 格式图片数据
-    save_path (str): 保存 PNG 图片的路径
+
+    Args:
+        base64_string (str): The base64 string of the image.
+        save_path (str): The path to save the image.
     """
+
     # 解码 base64 字符串为二进制数据
     image_data = base64.b64decode(base64_string)
     
@@ -58,20 +55,33 @@ def save_base64_image_as_png(base64_string, save_path):
     
     print(f"图片已成功保存至: {save_path}")
 
-def md5_encrypt(password):
-    # 创建一个 MD5 hash 对象
+def md5_encrypt(password:str) -> str:
+    """
+    Encrypt the password using MD5 algorithm.
+
+    Args:
+        password (str): the password to encrypt.
+
+    Returns:
+        str: the enctypyed password.
+    """
+
     md5_hash = hashlib.md5()
-    
-    # 更新 hash 对象，传入需要加密的密码（需要编码为字节）
     md5_hash.update(password.encode('utf-8'))
-    
-    # 获取加密后的十六进制字符串
     encrypted_password = md5_hash.hexdigest()
     
     return encrypted_password
 
 
-def set_background(image_path, opacity):
+def set_background(image_path:str, opacity:float):
+    """
+
+    Set the background image of the Streamlit app.
+
+    Args:
+        image_path (str): the path to the image file.
+        opacity (float): the opacity of the background image.
+    """
     with open(image_path, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
 
@@ -103,7 +113,7 @@ def enable_sidebar():
     st.sidebar.markdown("<style>div[role='tablist'] {pointer-events: auto;}</style>", unsafe_allow_html=True)
 
 
-def parse_message(message):
+def parse_message(message:str) -> Tuple[str,str]:
     """
     解析消息字符串，提取 role 和 text
     Args:
@@ -118,14 +128,16 @@ def parse_message(message):
         return match.group(1), match.group(2)
     else:
         return "系统", message
-def get_local_ip():
+    
+
+def get_local_ip() -> str:
     if '_self_ip' not in st.session_state:
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
         st.session_state['_self_ip'] = str(local_ip)
     return st.session_state['_self_ip']
 
-def get_local_port():
+def get_local_port() -> str:
     if '_self_port' not in st.session_state:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind(('', 0))
@@ -134,13 +146,11 @@ def get_local_port():
         st.session_state['_self_port'] = str(port)
     return st.session_state['_self_port']
 
-def start_flask_server(port):
+def start_flask_server():
     server_process = subprocess.Popen(["python", "flask_server.py", get_local_port()])
     return server_process
 
-# ip, port = FLASK_SERVER
-ip = "10.43.104.129"
-port = "5000"
+ip, port = SERVER
 
 if ip == "0.0.0.0":
     ip = "127.0.0.1"
@@ -258,154 +268,11 @@ def check_init_state(attributes:dict):
         if key not in st.session_state:
             st.session_state[key] = value
 
-fake_dailoge = [
-    {
-        "role":"Player1",
-        "text":"我决定让对手肚子痛！"
-    },
-    {
-        "role":"Player2",
-        "text":"我决定让对手手脚抽筋"
-    },
-    {
-        "role":"System",
-        "text":"Player1 和 Player2 分别使出了自己的独家绝学，尽管 Player2 感到腹中不适，他捂住肚子，开始想办法治疗自己，而 Player1 手脚突然抽痛，差点站不起来，Player1 难以维持一个适合战斗的状态！"
-    },
-    {
-        "role":"Player1",
-        "text":"我决定用大剑砍过去！"
-    },
-    {
-        "role":"Player2",
-        "text":"我决定射出知音箭！"
-    },
-    {
-        "role":"System",
-        "text":"Player2 射出了知音箭，知音箭箭如其名，带着音爆冲向 Player1, 但 Player1 用他的剑挡住了这一击！ Player1 将箭弹开后，一剑刺了过去！ Player2 堪堪躲开，然而手臂却不慎被割到，一两滴鲜血冒了出来。"
-    },
-]
-
 battle_attributes = {
     "waiting"       : False,
     "Generating"    : False,
-    "battle_history": fake_dailoge,
-    "username": "ADMIN"
+    "battle_history": [],
+    "username": ""
 }
 
-
-
 check_init_state(battle_attributes)
-
-html_local_player = '''
-<style>
-.row-2{{
-    position: relative;
-    width: 95%;
-    color: #fff;
-    line-height: 1.4rem;
-    font-size:large;
-    word-wrap: break-word;
-    border: 1px solid teal;
-    border-radius: 10px;
-    background: teal;
-    padding: 0.5rem;
-}}
-.row-2::after{{
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 0;
-    top: 10px;
-    right: -10px;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-left: 10px solid teal;
-}}
-.logline{{
-    margin-top: 10px;
-    margin-bottom: 10px;
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
-}}
-.left{{
-    flex: 9;
-    justify-content: center; 
-    display: flex;
-    align-items: center;
-}}
-.right{{
-    flex:1;
-    justify-content: center;
-    display: flex;
-    align-items: center;
-}}
-</style>
-
-<div class="logline">
-    <div class="left">
-        <div class="row-2">
-            {content}
-        </div>
-    </div>
-    <div class="right">
-        <div><img src="data:image/png;base64,{avatar_base64}" style="width: 60px; height: 60px; margin-right: 10px;"></div>
-    </div>
-'''
-
-html_remote_player = '''
-<style>
-.row-2{{
-    position: relative;
-    width: 95%;
-    color: #fff;
-    line-height: 1.4rem;
-    font-size:large;
-    word-wrap: break-word;
-    border: 1px solid teal;
-    border-radius: 10px;
-    background: teal;
-    padding: 0.5rem;
-}}
-.row-2::after{{
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 0;
-    top: 10px;
-    left: -10px;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-right: 10px solid teal;
-}}
-.logline{{
-    margin-top: 10px;
-    margin-bottom: 10px;
-    display: flex;
-    width: 100%;
-    align-items: flex-start;
-}}
-.left{{
-    flex: 1;
-    justify-content: center; 
-    display: flex;
-    align-items: center;
-}}
-.right{{
-    flex:9;
-    justify-content: center;
-    display: flex;
-    align-items: center;
-}}
-</style>
-<div class="logline">
-    <div class="left">
-        <div><img src="data:image/png;base64,{avatar_base64}" style="width: 60px; height: 60px; margin-right: 10px;"></div>
-    </div>
-    <div class="right">
-        <div class="row-2">
-            {content}
-        </div>
-    </div>
-</div>
-'''
