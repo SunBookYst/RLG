@@ -50,3 +50,8 @@ TASK_EXPIRE_TIME = timedelta(minutes=1)
 
 
 assert sum(TASK_DISTRIBUTION.values()) == 1.00, "The distribution of task type is rather not valid."
+
+
+
+# Constant used in connection part.
+MAX_WINDOW = 5

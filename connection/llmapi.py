@@ -6,9 +6,8 @@ import json
 from tenacity import retry, stop_after_attempt
 from typing import List,Dict
 
-from request.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
-from request.constant import MAX_WINDOW
-
+from connection.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
+from connection.constant import MAX_WINDOW
 
 class LLMAPI(object):
     """

@@ -2,8 +2,8 @@ from openai import OpenAI
 
 from random import choices
 
-MAX_WINDOW = 5
 
+MAX_WINDOW = 5
 # GPT-series api-key from free gpt api.
 OPENAI_API_KEY = "sk-Vq96CR7NAcSYbUraA8Be7e5a74Ae4bBe9742EaEe819910Ee"
 OPENAI_BASE_URL = "https://free.gpt.ge/v1/"

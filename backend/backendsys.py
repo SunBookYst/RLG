@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 import random
 import time
 import threading
@@ -7,19 +7,14 @@ import pickle
 import json
 import os
 import base64
-
 from typing import Tuple, Dict, List, Any, Callable
 from typing import TypeVar,Literal
-
 Base64 = TypeVar('Base64')
 
-from request import LLMAPI, StableDiffusion
-from request.constant import get_valid_headers
-
+from connection import LLMAPI, StableDiffusion
+from connection.constant import get_valid_headers
 from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE, TASK_DISTRIBUTION, MAX_TASKNUM_QUEUE, REFRESH_TASKQUEUE_INTERVAL_SECONDS,SAVE_USER_INFO_INTERVAL_SECONDS,USER_EXPIRE_TIME,TASK_EXPIRE_TIME,CHECK_OFFLINE_INTERVAL_SECONDS,CHECK_DEAD_BATTLE_INTERVAL_SECONDS,WINNING_ROUND_TO_END
-
 from util.constant import BattleStatus
-
 from util.prompt import (TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PROMPT, DM_PROMPT, JUDGE_PROMPT,
                             ACT_PROMPT, BATTLE_PROMPT, SUM_PROMPT_TEMPLATE)
 
