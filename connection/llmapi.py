@@ -1,13 +1,15 @@
 import requests
 import time
+from typing import Dict,List
 
 import openai
 import json
 from tenacity import retry, stop_after_attempt
-from typing import List,Dict
 
-from connection.constant import (GPT_CLIENT, KIMI_CLIENT, TOKEN_HEADERS, SERVER_URL)
+from connection.constant import (GPT_CLIENT, KIMI_CLIENT, SERVER_URL)
 from connection.constant import MAX_WINDOW
+from connection.constant import get_valid_headers
+from util.utils import debug_print
 
 class LLMAPI(object):
     """
@@ -20,26 +22,32 @@ class LLMAPI(object):
         - chat_history (list): The history of the conversation, make a consistent chat.
         - kimi_id (str): The ID of the kimi model, default is "null"
             (So to get rid of a 'init' function first.)
-            
+
     Methods:
     --------
         - generateResponse(prompt, return_json = False): Generate a response from the LLM model.
     """
-    
-    def __init__(self, model_name, initial_prompt="", headers = TOKEN_HEADERS):
+
+    def __init__(self, 
+                model_name    : str,
+                headers       : Dict[str,str],
+                initial_prompt: str = "")    : 
         self.model_name = model_name
         self.initial_prompt = initial_prompt
         self.headers = headers
-        
+
         if initial_prompt == '':
             self.chat_history = []
         else:
             self.chat_history = [{'role': 'system', 'content': initial_prompt}]
-        
+
         self.kimi_id = 'null'
 
     @retry(stop=stop_after_attempt(3))
-    def generateResponse(self, prompt: str, return_json: bool = False, stream: bool = False) -> str|Dict:
+    def generateResponse(self, 
+                        prompt     : str,
+                        return_json: bool = False,
+                        stream     : bool = False) -> str|Dict: 
         """
         Generate a result from a given prompt.
 
@@ -54,18 +62,18 @@ class LLMAPI(object):
             str|dict: if the return_json is set to False, return the text of the response. If the return_json is set to True, return the raw json of the response.
         """
         prompt = self.initial_prompt + prompt
-        
-        self.chat_history.append({'role':'user', 'content': prompt})
-        
+
+        self.chat_history.append({'role': 'user', 'content': prompt})
+
         if self.model_name == "gpt-3.5-turbo":
 
             response = GPT_CLIENT.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=self.chat_history[-MAX_WINDOW:],
             )
-            
-            self.chat_history.append({'role':'assistant','content': response.choices[0].message.content})
-            
+
+            self.chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
+
             if return_json:
                 return response
             else:
@@ -73,14 +81,14 @@ class LLMAPI(object):
                 return response
 
         if self.model_name == "kimi":
-            
+
             response = KIMI_CLIENT.chat.completions.create(
                 model="moonshot-v1-8k",
                 messages=self.chat_history[-MAX_WINDOW:]
             )
-            
+
             self.chat_history.append({'role': 'assistant', 'content': response.choices[0].message.content})
-            
+
             if return_json:
                 return response
             else:
@@ -88,7 +96,7 @@ class LLMAPI(object):
                 return response
 
         if self.model_name == "KIMI-server":
-            
+
             data = {
                 "model": "kimi",
                 "conversation_id": self.kimi_id,
@@ -112,7 +120,7 @@ class LLMAPI(object):
                     self.kimi_id = kimi_id
                 self.chat_history.append({'role': 'assistant', 'content': result})
                 return result
-            
+
             else:
                 response = response.json()
                 self.chat_history.append({'role': 'assistant', 'content': response["choices"][0]["message"]["content"]})
@@ -156,8 +164,8 @@ class LLMAPI(object):
                     except json.JSONDecodeError:
                         print("Failed to decode JSON:", data_str)
         return result, kimi_id
-    
-    def getAllConversation(self) -> List[Dict[str, str]]:
+
+    def getAllConversation(self) -> List[Dict[str,str]]:
         """
         Get the conversation of the whole sessions.
 
@@ -171,45 +179,44 @@ class LLMAPI(object):
         return self.chat_history
 
 
-def initialize_llm(prompt, type="KIMI-server") -> LLMAPI:
-    print("Initializing...")
-    model = LLMAPI(model_name = type)
-    intro = model.generateResponse(prompt, stream = True)
-    print('\n')
+def initialize_llm(prompt, type="KIMI-server"):
+    # Sign...
+    debug_print("Initializing...")
+    model = LLMAPI(model_name=type, headers=get_valid_headers())
+    intro = model.generateResponse(prompt, stream=True)
     return model
 
 
 def main():
-
     Q = "你是谁？"
-    
+
     try:
         llm_server = LLMAPI("KIMI-server")
         response = llm_server.generateResponse(Q)
         print('kimi-server:', response)
-    
+
     except Exception as e:
         print('kimi-server: 连接失败')
         print(e)
-        
+
     try:
         llm_gpt = LLMAPI("gpt-3.5-turbo")
         response = llm_gpt.generateResponse(Q)
         print('gpt-3.5-turbo:', response)
-        
+
     except Exception as e:
         print('gpt-3.5-turbo: 连接失败')
         print(e)
-    
+
     try:
         llm_kimi = LLMAPI("kimi")
         response = llm_kimi.generateResponse(Q)
         print('kimi:', response)
-        
+
     except Exception as e:
         print('kimi: 连接失败')
         print(e)
-        
-    
+
+
 if __name__ == "__main__":
     main()

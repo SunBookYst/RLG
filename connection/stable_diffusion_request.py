@@ -2,9 +2,20 @@ import requests
 import io
 import base64
 from PIL import Image
+from copy import deepcopy
 
-from connection.llmapi import LLMAPI
+from typing import Dict,Literal
+
+from connection.llmapi import LLMAPI, initialize_llm
 from util.prompt import GENERATE_CHACTER_PROMPT, GENERATE_BACKGROUND_PROMPT
+from util.constant import STABLE_DIFFUSION_CHATACTER_JSON, STABLE_DIFFUSION_BACKGROUND_JSON, STABLE_DIFFUSION_HEADER, STABLE_DIFFUSION_PROCESS_JSON
+
+from util.constant import STABLE_DIFFUSION_URL_TEMPLATE
+
+
+# TODO: Some is useless.
+
+from util.utils import debug_print
 
 class StableDiffusion:
     """
@@ -30,92 +41,44 @@ class StableDiffusion:
         """
         Initializes the StableDiffusion instance with default parameters for text-to-image generation and image processing.
         """
-        self.prompt_generator_c = LLMAPI("KIMI-server")
-        self.prompt_generator_b = LLMAPI("KIMI-server")
+        self.prompt_generator_c:LLMAPI = initialize_llm(GENERATE_CHACTER_PROMPT)
+        self.prompt_generator_b:LLMAPI = initialize_llm(GENERATE_BACKGROUND_PROMPT)
 
-        self.character = {
-            "prompt": "masterpiece,best quality, ultra-detailed, highres, clear face, only 1 character",
-            "negative_prompt": "NSFW, (worst quality, low quality:1.3)",
-            "seed": -1,
-            "batch_size": 1,
-            "n_iter": 1,
-            "steps": 22,
-            "cfg_scale": 9,
-            "width": 512,
-            "height": 512,
-            "override_settings": {
-                "sd_model_checkpoint": "etherBluMix_etherBluMix7.safetensors [686eec2aef]",
-                "sd_vae": "kl-f8-anime2.ckpt",
-            },
-            "sampler_index": "DPM++ 2M Karras",
-        }
+        # self.character  :Dict[str,str]  = STABLE_DIFFUSION_CHATACTER_JSON
+        # self.pp         :Dict[str,str]  = STABLE_DIFFUSION_PROCESS_JSON
+        # self.background :Dict[str,str]  = STABLE_DIFFUSION_BACKGROUND_JSON
+        # self.headers    :Dict[str, str] = STABLE_DIFFUSION_HEADER
 
-        self.pp = {
-            "resize_mode": 0,
-            "gfpgan_visibility": 0,
-            "codeformer_visibility": 0,
-            "codeformer_weight": 0,
-            "upscaling_resize": 2,
-            "upscaling_resize_w": 512,
-            "upscaling_resize_h": 512,
-            "upscaler_1": "None",
-            "upscaler_2": "None",
-            "extras_upscaler_2_visibility": 0,
-            "image": "",
-        }
-
-        self.background = {
-            "prompt": "masterpiece,best quality, ultra-detailed, highres,",
-            "negative_prompt": "low quality, ((human)), man, character",
-            "seed": -1,
-            "batch_size": 1,
-            "n_iter": 1,
-            "steps": 20,
-            "cfg_scale": 7,
-            "width": 512,
-            "height": 256,
-            "override_settings": {
-                "sd_model_checkpoint": "etherBluMix_etherBluMix7.safetensors [686eec2aef]",
-                "sd_vae": "kl-f8-anime2.ckpt",
-            },
-            "sampler_index": "DPM++ 2M Karras",
-        }
-
-        self.headers = {
-            "Authorization": "Basic TXVZaVBhcmFzb2w6MjAwMzAxMjQ="
-        }
-
-    def initialize(self):
-
-
-        self.prompt_generator_c.generateResponse(GENERATE_CHACTER_PROMPT)
-        self.prompt_generator_b.generateResponse(GENERATE_BACKGROUND_PROMPT)
-
-    def input_prompt(self, prompt):
+    def generateImages(self, mode:int, prompt:str = "") -> str:
         """
-        Appends additional input to the current prompt.
+        Generates images based on the current prompt.
+
+        Makes an API request to the Stable Diffusion server to generate images.
 
         Args:
-            prompt (str): Additional prompt to be appended.
-        """
-        print("Entering additional input for the prompt...")
-        self.character['prompt'] += prompt
-
-    def generate_images(self, prompt=None):
-        """
-        Generates images based on the current prompt.
-
-        Makes an API request to the Stable Diffusion server to generate images.
+            mode (int): [1 / 2] generate character / background
+            prompt (str, optional): the need of the prompt. Defaults to "".
 
         Returns:
-            str: Base64 string of the generated image.
+            str: the base64 string of the generated image.
         """
-        # Stable Diffusion API URL
-        url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
-        self.character['prompt'] += prompt
+        url = STABLE_DIFFUSION_URL_TEMPLATE.format("sdapi/v1/txt2img")
+
+        if mode == 1:
+            temporary_json = deepcopy(STABLE_DIFFUSION_CHATACTER_JSON)
+        elif mode == 2:
+            temporary_json = deepcopy(STABLE_DIFFUSION_BACKGROUND_JSON)
+        else:
+            raise ValueError("Invalid mode. Must be 1 or 2.")
+
+        temporary_json['prompt'] += prompt
+
         # Make the API request
-        print("Generating...")
-        response = requests.post(url, json=self.character, headers=self.headers)
+        debug_print("Generating...")
+        response = requests.post(url    = url, 
+                                json    = temporary_json,
+                                headers = STABLE_DIFFUSION_HEADER)
+
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Process the response
@@ -126,44 +89,18 @@ class StableDiffusion:
             img_bytes = base64.b64decode(img_data.split(",", 1)[0])
             imgb = img_data
             # Save the image
-            with Image.open(io.BytesIO(img_bytes)) as img:
-                img.save(f'output_{i}.png')
+            if mode == 1:
+                with Image.open(io.BytesIO(img_bytes)) as img:
+                    img.save(f'output_{i}.png')
+                    
+            elif mode == 2:
+                with Image.open(io.BytesIO(img_bytes)) as img:
+                    img.save('output_b.png')
 
-        print("Images saved successfully.")
+        debug_print("Images saved successfully.")
         return imgb
 
-    def generate_background(self, prompt=None):
-        """
-        Generates images based on the current prompt.
-
-        Makes an API request to the Stable Diffusion server to generate images.
-
-        Returns:
-            str: Base64 string of the generated image.
-        """
-        # Stable Diffusion API URL
-        url = "http://127.0.0.1:7860/sdapi/v1/txt2img"
-        self.background['prompt'] += prompt
-        # Make the API request
-        print("Generating...")
-        response = requests.post(url, json=self.background, headers=self.headers)
-        response.raise_for_status()  # Raise an error for bad status codes
-
-        # Process the response
-        r = response.json()
-        imgb = ""
-        for i, img_data in enumerate(r['images']):
-            # Decode the base64 image data
-            img_bytes = base64.b64decode(img_data.split(",", 1)[0])
-            imgb = img_data
-            # Save the image
-            with Image.open(io.BytesIO(img_bytes)) as img:
-                img.save(f'output_b.png')
-
-        print("Images saved successfully.")
-        return imgb
-
-    def process_images(self, image):
+    def process_images(self, image:str)->str:
         """
         Processes the given base64 image string using the defined parameters.
 
@@ -171,45 +108,51 @@ class StableDiffusion:
             image (str): Base64 string of the image to be processed.
         """
         # Stable Diffusion API URL
-        url = "http://127.0.0.1:7860/sdapi/v1/extra-single-image"
+        url = STABLE_DIFFUSION_URL_TEMPLATE.format("sdapi/v1/extra-single-image")
 
         # Make the API request
-        print("Processing...")
-        self.pp['image'] = image
-        response = requests.post(url, json=self.pp, headers=self.headers)
+        debug_print("Processing...")
+        temporary_json = deepcopy(STABLE_DIFFUSION_PROCESS_JSON)
+        temporary_json['image'] = image
+        response = requests.post(url    = url, 
+                                json    = temporary_json,
+                                headers = STABLE_DIFFUSION_HEADER)
         response.raise_for_status()  # Raise an error for bad status codes
 
         # Process the response
         r = response.json()
-        # print(r)
         img_data = r['image']
-
         image = img_data.split(",", 1)[0]
 
         return image
 
-    def standard_workflow(self, need, mode):
+    def standard_workflow(self, need:str, mode:int) -> str:
         """
-        标准工作流程
-        :param need: 需求描述
-        :param mode: 1（人像模式）|2（背景模式）
-        :return: 像素化后的图片
+        Standard workflow for generating images.
+
+        Args:
+            need (str): the need for generating the image.
+            mode (int): [1 / 2], whether to generate a foreground image or a background image.
+
+        Returns:
+            str: base64 of the image, storing in str rather than Byte
         """
         image = None
 
         if mode == 1:
             positive_prompt = self.prompt_generator_c.generateResponse(need)
-            image = self.generate_images(positive_prompt)
         elif mode == 2:
             positive_prompt = self.prompt_generator_b.generateResponse(need)
-            image = self.generate_background(positive_prompt)
+        else:
+            raise ValueError("Invalid mode. Please choose 1 or 2.")
+        
+        image = self.generateImages(mode = mode, prompt = positive_prompt)
 
         return self.process_images(image)
 
 
 if __name__ == "__main__":
     sd = StableDiffusion()
-    sd.initialize()
     sd.standard_workflow("一个小姑娘", 1)
     sd.standard_workflow("一栋房子", 2)
 
