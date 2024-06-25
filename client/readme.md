@@ -1,1 +1,0 @@
-Warning: This section is now deprecated.
