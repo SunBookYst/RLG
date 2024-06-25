@@ -28,7 +28,8 @@ def craft(mode, num, des):
     else:
         st.write("Error: Unable to select this task.")
 
-
+opacity = 0.5  # 调节透明度，范围从 0 到 1
+set_background(ST_PATH+"/image/00034.png", opacity)
 if not st.session_state['logged_in']:
     st.write("尊敬的勇士，请先表明身份！")
     st.page_link("主页.py", label="Go to login")

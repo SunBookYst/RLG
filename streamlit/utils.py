@@ -139,7 +139,7 @@ def start_flask_server(port):
     return server_process
 
 # ip, port = FLASK_SERVER
-ip = "10.46.52.228"
+ip = "10.43.104.129"
 port = "5000"
 
 if ip == "0.0.0.0":
@@ -165,6 +165,8 @@ def refresh(role,placeholder):
         st.session_state.battle_id = st.session_state.accept_id[0]
         st.session_state.battle_history = []
         st.rerun()
+    else:
+        placeholder.markdown("")
     if len(st.session_state.id_list)>0:
         placeholder.markdown("### Challenge 🔴")
     else:

@@ -5,9 +5,9 @@ Request List
 
 - 登录发送信息已更新ip地址 发送{'email':str,'password':str,'ip':str},前者为注册用的邮箱地址，后者为加密后的密码,ip为此次登录使用的ip地址和端口，用于系统向本地发送消息 ； 期望接收{'status_code':int,'username':str},username为注册时的用户名，status_code 200表示成功，其他还有如密码不正确，未注册等错误； 路由 /login
 
-- 注册 发送{'email':str,'username':str,'password':str,'ip':str},email和password同上，需要注意username需要检测合法性； 期望接收 {'status_code':int},200为注册成功，其他code自定义，例如重名，邮箱已被使用，名称不合法等等；密码加密操作在前端完成；ip为玩家IP地址以及端口 路由/signup
+- 注册 发送{'email':str,'username':str,'password':str,'ip':str,'image_data':base64},email和password同上，需要注意username需要检测合法性； 期望接收 {'status_code':int},200为注册成功，其他code自定义，例如重名，邮箱已被使用，名称不合法等等；密码加密操作在前端完成；ip为玩家IP地址以及端口 路由/signup
 
-- 请求生成新的任务 发送:{'text':str,'role':str}; 路由：/task_request ; 期望接收：{'text':str,'role',str},和DM对话的返回内容格式一致
+- 请求生成新的任务 发送:{'text':str,'role':str}; 路由：/task_request ; 期望接收：{'text':str},和DM对话的返回内容格式一致
 - 请求查看个性化任务列表 同查看任务列表, 路由为 task_info_personal,
 - 选择任务/个性化任务的select和select_personal两个路由, 发送{'role':str,'task_name':str},返回{'image_data':base64，'text':str}，imamge_data为任务背景图，text为进入任务后收到的第一句话
 

@@ -1,4 +1,4 @@
-# streamlit run ./streamlit/主页.py
+#streamlit run ./streamlit/主页.py --server.port 999 --server.enableXsrfProtection=false --server.maxUploadSize=1
 # 初始化
 
 import streamlit as st

@@ -6,5 +6,3 @@ gatherUsageStats = false
 # 禁止跨源资源共享（CORS）和跨站请求伪造（XSRF）保护
 # enableCORS = false
 enableXsrfProtection = false
-
-streamlit run ./streamlit/主页.py --server.port 999 --server.enableXsrfProtection=false --server.maxUploadSize=0.5

@@ -251,7 +251,7 @@ else:
                 st.session_state.condition_cha = 2
                 st.rerun()
     elif st.session_state.condition_cha == 2:
-        image_path = ST_PATH + f"/image/cover.png"
+        image_path = ST_PATH + f"/image/战斗界面.png"
         opacity = 0.5  # 调节透明度，范围从 0 到 1
         try:
             set_background(image_path, opacity)
