@@ -4,6 +4,7 @@ from datetime import timedelta
 from enum import Enum
 
 FLASK_SERVER = ("0.0.0.0",5000)
+SERVER = ("10.46.52.228", "5000")
 
 class BattleStatus(Enum):
     """
