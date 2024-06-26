@@ -11,6 +11,8 @@ from typing import Tuple, Dict, List, Any, Callable
 from typing import TypeVar,Literal
 Base64 = TypeVar('Base64')
 
+sys.path.append('..')
+
 from connection import LLMAPI, StableDiffusion
 from connection.llmapi import initialize_llm
 from util.constant import INITIAL_DRAGON_EYE, INITIAL_PHONEIX_FEATURE, INITIAL_EXPERIENCE, TASK_DISTRIBUTION, MAX_TASKNUM_QUEUE, REFRESH_TASKQUEUE_INTERVAL_SECONDS,SAVE_USER_INFO_INTERVAL_SECONDS,USER_EXPIRE_TIME,TASK_EXPIRE_TIME,CHECK_OFFLINE_INTERVAL_SECONDS,CHECK_DEAD_BATTLE_INTERVAL_SECONDS,WINNING_ROUND_TO_END
@@ -19,7 +21,7 @@ from util.prompt import (TASK_PROMPT, EQUIPMENT_PROMPT, SKILL_PROMPT, CUSTOM_PRO
                             ACT_PROMPT, BATTLE_PROMPT, SUM_PROMPT_TEMPLATE)
 
 from util.utils import debug_print, fix_response
-sys.path.append('..')
+
 
 # debug模式
 DEBUG = True
@@ -690,9 +692,9 @@ class BackEndSystem(object):
                         player_name : str,
                         player_input: str,
                         mode        : int,
-                        equipment   : List[str, Dict] = [],
-                        skill       : List[str, Dict] = [],
-                        roles       : List[str, str]  = []) -> Dict[str, Any]:
+                        equipment   : List[Dict] = [],
+                        skill       : List[Dict] = [],
+                        roles       : List[str]  = []) -> Dict[str, Any]:
         """
         Get the player input and return the response from the system, including the dm and the director.
 
@@ -897,7 +899,7 @@ class BackEndSystem(object):
             return skill
         
         else:
-            raise ValueError, "Unknown mode to craft items."
+            raise ValueError("Unknown mode to craft items.")
 
     def getAllAvailableTasks(self) -> List[str]:
         """
