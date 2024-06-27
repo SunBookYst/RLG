@@ -117,3 +117,47 @@ STABLE_DIFFUSION_PROCESS_JSON = {
 STABLE_DIFFUSION_IPV4 = "http://127.0.0.1:7860/"
 
 STABLE_DIFFUSION_URL_TEMPLATE = "http://127.0.0.1:7860/{}"
+
+
+
+# The above is from the frontend of the project.
+SESSION_ATTRIBUTES = {
+    'logged_in'                   : False,
+    'condition_personal'          : 0,
+    'task_personal'               : "",
+    'user_input_personal'         : "",
+    'task_list_personal'          : [],
+    'focus_on_task_personal'      : False,
+    'task_chat_history_personal'  : [],
+    'selected_items_personal'     : [],
+    'selected_items_tmp_personal' : [],
+    'selected_skills_personal'    : [],
+    'selected_skills_tmp_personal': [],
+    'roles_task_personal'         : ['系统'],
+    'condition'                   : 0,
+    "task"                        : "",
+    "user_input"                  : "",
+    "task_list"                   : [],
+    "focus_on_task"               : False,
+    "task_chat_history"           : [],
+    "selected_items"              : [],
+    "selected_items_tmp"          : [],
+    "selected_skills"             : [],
+    "selected_skills_tmp"         : [],
+    "roles_task"                  : ['系统'],
+    "waiting"                     : False,
+    "Generating"                  : False,
+    "sign_up"                     : False,
+    'chat_history_rq'             : [],
+    'condition_cha'               : 0,
+    'task_cha'                    : "",
+    'user_input_cha'              : "",
+    'task_list_cha'               : [],
+    'focus_on_task_cha'           : False,
+    'task_chat_history_cha'       : [],
+    'selected_items_cha'          : [],
+    "selected_items_tmp_cha"      : [],
+    'selected_skills_cha'         : [],
+    'selected_skills_tmp_cha'     : [],
+    "challenage_over"             : False
+}

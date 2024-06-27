@@ -6,42 +6,37 @@ import requests
 import json
 from utils import *
 
-# 初始化会话状态
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-if 'waiting' not in st.session_state:
-    st.session_state['waiting'] = False
-if 'generating' not in st.session_state:
-    st.session_state['generating'] = False
-if 'sign_up' not in st.session_state:
-    st.session_state['sign_up'] = False
-if 'chat_history' not in st.session_state:
-    st.session_state['chat_history'] = []
-if 'condition_cha' not in st.session_state:
-    st.session_state["condition_cha"] = 0
+# # 初始化会话状态
+# if 'logged_in' not in st.session_state:
+#     st.session_state['logged_in'] = False
+# if 'waiting' not in st.session_state:
+#     st.session_state['waiting'] = False
+# if 'generating' not in st.session_state:
+#     st.session_state['generating'] = False
+# if 'sign_up' not in st.session_state:
+#     st.session_state['sign_up'] = False
+# if 'chat_history' not in st.session_state:
+#     st.session_state['chat_history'] = []
+# if 'condition_cha' not in st.session_state:
+#     st.session_state["condition_cha"] = 0
 
-placeholder=play_music()
+placeholder = play_music()
 
 def login():
     """
-    登录
-    Returns:
-
+    ? What is this about?
     """
-    _ = requests.get(url + 'register', json={
-        'name': st.session_state['username'],
-        'feature': ""
-    })
+    requests.get(url + 'register', 
+                json={
+        'name'   : st.session_state['username'],
+        'feature': ""})
 
 
-def chat_with_dm(user_input):
+def chat_with_dm(user_input:str):
     """
-    与dm对话
+    Talk with DM.
     Args:
         user_input: 用户输入
-
-    Returns:
-
     """
     # 发送请求到 Flask 路由
     response = requests.get(url + 'main', json={
@@ -81,7 +76,7 @@ def show_login_page():
             # r = json.loads(r.text)
             # try:
             r = json.loads(r.text)
-            if r['status_code']==200:
+            if r['status_code'] == 200:
                 st.session_state['waiting'] = True
                 st.session_state['username'] = r['username']
                 save_base64_image_as_png(r["image_data"],ST_PATH+"/image/"+f"player_{st.session_state['username']}.png")

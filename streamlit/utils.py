@@ -4,6 +4,7 @@ from io import BytesIO
 import re
 import sys
 from PIL import Image
+import time
 import socket
 import hashlib
 import random
@@ -14,6 +15,7 @@ import subprocess
 from typing import Tuple
 
 import streamlit as st
+from util.constant import SESSION_ATTRIBUTES
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
@@ -113,7 +115,22 @@ def enable_sidebar():
     st.sidebar.markdown("<style>div[role='tablist'] {pointer-events: auto;}</style>", unsafe_allow_html=True)
 
 
-def parse_message(message:str) -> Tuple[str,str]:
+def control_sidebar(enable:bool):
+    """
+    Control the sidebar.
+
+    Args:
+        enable (bool): True to enable the sidebar, False to disable it.
+    """
+
+    html_text_template = "<style>div[role='tablist'] {pointer-events: {};}</style>"
+    if enable:
+        st.sidebar.markdown(html_text_template.format("auto"), unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown(html_text_template.format("none"), unsafe_allow_html=True)
+
+
+def parse_message(message: str) -> Tuple[str,str]:
     """
     解析消息字符串，提取 role 和 text
     Args:
@@ -249,7 +266,6 @@ def play_music():
 
 def check_init_state(attributes:dict):
     """
-    
     For a more controllable, understandable way to make initialization.
 
     Args:
@@ -275,4 +291,4 @@ battle_attributes = {
     "username": ""
 }
 
-check_init_state(battle_attributes)
+check_init_state(SESSION_ATTRIBUTES)
